@@ -18,583 +18,631 @@
     <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 
     <style>
+        /* Core App Styles */
         body {
             font-family: 'Plus Jakarta Sans', sans-serif;
-            background-color: #f0f2f5;
+            background-color: #111827; /* Dark background for desktop view */
             user-select: none;
             -webkit-tap-highlight-color: transparent;
-            overscroll-behavior: none;
-        }
-        .font-cursive {
-            font-family: 'Pacifico', cursive;
-        }
-        .no-scrollbar::-webkit-scrollbar {
-            display: none;
-        }
-        .no-scrollbar {
-            -ms-overflow-style: none;
-            scrollbar-width: none;
+            overflow: hidden;
+            height: 100dvh; /* Dynamic Height for Mobile Browsers */
         }
         
-        /* Smooth transitions for views */
+        #app-container {
+            height: 100dvh;
+            width: 100%;
+            max-width: 480px; /* Mobile width cap */
+            margin: 0 auto;
+            background-color: white;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .font-cursive { font-family: 'Pacifico', cursive; }
+        
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+        .animate-fade-in { animation: fadeIn 0.4s ease-out; }
+        .animate-slide-up { animation: slideUp 0.3s ease-out; }
+        .animate-pulse-slow { animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+        /* View Management */
         .view-section {
             display: none;
+            height: 100%;
+            width: 100%;
+            flex-direction: column;
+            background: white;
             position: absolute;
             top: 0;
             left: 0;
-            right: 0;
-            bottom: 0;
-            flex-direction: column;
-            background-color: white;
             z-index: 10;
         }
-        .view-section.active {
-            display: flex;
-            animation: fadeIn 0.3s ease-in-out;
-            z-index: 20;
-        }
+        .view-section.active { display: flex; animation: fadeIn 0.3s ease-in-out; z-index: 20; }
         
-        /* Sub-views (Wallet/Settings) overlay */
-        .sub-view {
-            transform: translateY(100%);
-            transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-            z-index: 50;
-        }
-        .sub-view.open {
-            transform: translateY(0);
-        }
+        /* Modal / Overlay z-indexes */
+        .z-overlay { z-index: 50; }
+        .z-modal { z-index: 60; }
+        .z-toast { z-index: 100; }
 
-        @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
-        }
-        @keyframes pulse-ring {
-            0% { transform: scale(0.8); box-shadow: 0 0 0 0 rgba(255, 79, 133, 0.7); }
-            70% { transform: scale(1); box-shadow: 0 0 0 20px rgba(255, 79, 133, 0); }
-            100% { transform: scale(0.8); box-shadow: 0 0 0 0 rgba(255, 79, 133, 0); }
-        }
-
+        /* Input Styling */
         .otp-input:focus {
             border-color: #4f85ff;
             background-color: #eff6ff;
             transform: scale(1.05);
-            box-shadow: 0 4px 12px rgba(79, 133, 255, 0.2);
-        }
-        
-        /* Camera pulse animation for call screen */
-        .call-pulse {
-            animation: pulse-ring 2s infinite;
+            box-shadow: 0 4px 12px -2px rgba(59, 130, 246, 0.2);
         }
 
-        /* IOS Switch Toggle */
-        .toggle-checkbox:checked {
-            right: 0;
-            border-color: #68D391;
+        /* Call Screen Styles */
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
         }
-        .toggle-checkbox:checked + .toggle-label {
-            background-color: #68D391;
-        }
-        
-        /* Custom File Input */
-        .file-upload-wrapper {
-            position: relative;
-            overflow: hidden;
-            display: inline-block;
-        }
-        .file-upload-wrapper input[type=file] {
-            font-size: 100px;
-            position: absolute;
-            left: 0;
-            top: 0;
-            opacity: 0;
+
+        /* Avatar Upload Preview */
+        .avatar-preview {
+            background-size: cover;
+            background-position: center;
         }
     </style>
 </head>
-<body class="h-screen w-full flex justify-center bg-gray-200 overflow-hidden text-gray-800">
+<body>
 
-    <!-- Mobile Container -->
-    <div id="app-container" class="relative w-full max-w-md h-full bg-white shadow-2xl flex flex-col overflow-hidden">
+    <div id="app-container">
         
         <!-- ================= VIEWS ================= -->
 
         <!-- 1. SPLASH SCREEN -->
         <div id="view-splash" class="view-section active items-center justify-center bg-white">
-            <div class="flex flex-col items-center gap-4">
+            <div class="flex flex-col items-center gap-4 animate-slide-up">
                 <div class="relative w-28 h-28">
                    <div class="absolute inset-0 border-4 border-[#4f85ff] rounded-full opacity-20 animate-ping"></div>
-                   <div class="w-28 h-28 bg-gradient-to-tr from-[#4f85ff] to-[#ff4f85] rounded-full flex items-center justify-center text-white text-5xl font-bold shadow-2xl shadow-pink-200">
+                   <div class="w-28 h-28 bg-gradient-to-tr from-[#4f85ff] to-[#ff4f85] rounded-full flex items-center justify-center text-white text-5xl font-bold shadow-2xl">
                      <div class="relative">
-                       <i class="ph-fill ph-infinity"></i>
+                       <div class="absolute w-3 h-3 bg-white rounded-full -top-1 -right-1"></div>
+                       ∞
                      </div>
                    </div>
                 </div>
-                <div class="text-center mt-6 animate-pulse">
-                    <h1 class="text-4xl font-cursive text-[#ff4f85] drop-shadow-sm">Mood</h1>
-                    <h1 class="text-5xl font-cursive text-[#4f85ff] -mt-3 drop-shadow-sm">Connecto</h1>
+                <div class="text-center mt-6">
+                    <h1 class="text-4xl font-cursive text-[#ff4f85]">Mood</h1>
+                    <h1 class="text-5xl font-cursive text-[#4f85ff] -mt-3">Connecto</h1>
                 </div>
-                <p class="absolute bottom-10 text-gray-400 text-xs tracking-widest uppercase font-semibold">Real Connections</p>
             </div>
         </div>
 
         <!-- 2. GENDER SELECTION -->
         <div id="view-gender" class="view-section bg-white p-8 items-center justify-center">
             <h1 class="text-3xl font-bold text-gray-900 mb-2 text-center">I am a...</h1>
-            <p class="text-gray-500 mb-10 text-center">Select your gender to find matches</p>
+            <p class="text-gray-500 mb-10 text-center">We will match you based on this.</p>
 
-            <div class="w-full space-y-6">
-                <button onclick="selectGender('male')" class="w-full p-6 rounded-3xl border-2 border-gray-100 hover:border-[#4f85ff] bg-blue-50/50 flex flex-col items-center gap-3 transition-all active:scale-95 group shadow-sm">
-                    <div class="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center text-4xl group-hover:bg-[#4f85ff] group-hover:text-white transition-colors shadow-inner">
-                        👨
-                    </div>
+            <div class="w-full space-y-5">
+                <button onclick="selectGender('male')" class="w-full p-6 rounded-3xl border-2 border-gray-100 hover:border-[#4f85ff] bg-blue-50/30 flex flex-col items-center gap-3 transition-all active:scale-95 active:bg-blue-100 group">
+                    <div class="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center text-4xl group-hover:bg-[#4f85ff] group-hover:text-white transition-colors shadow-sm">👨</div>
                     <span class="text-xl font-bold text-gray-800">Male</span>
                 </button>
 
-                <button onclick="selectGender('female')" class="w-full p-6 rounded-3xl border-2 border-gray-100 hover:border-[#ff4f85] bg-pink-50/50 flex flex-col items-center gap-3 transition-all active:scale-95 group shadow-sm">
-                    <div class="w-20 h-20 bg-pink-100 rounded-full flex items-center justify-center text-4xl group-hover:bg-[#ff4f85] group-hover:text-white transition-colors shadow-inner">
-                        👩
-                    </div>
+                <button onclick="selectGender('female')" class="w-full p-6 rounded-3xl border-2 border-gray-100 hover:border-[#ff4f85] bg-pink-50/30 flex flex-col items-center gap-3 transition-all active:scale-95 active:bg-pink-100 group">
+                    <div class="w-20 h-20 bg-pink-100 rounded-full flex items-center justify-center text-4xl group-hover:bg-[#ff4f85] group-hover:text-white transition-colors shadow-sm">👩</div>
                     <span class="text-xl font-bold text-gray-800">Female</span>
                 </button>
             </div>
         </div>
 
-        <!-- 3. PHOTO UPLOAD (New View) -->
-        <div id="view-photo" class="view-section bg-white p-8 pt-12">
-            <button onclick="switchView('view-gender')" class="mb-4 w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors">
-                <i class="ph ph-arrow-left text-gray-900 text-2xl"></i>
-            </button>
-            
-            <h1 class="text-3xl font-bold text-gray-900 mb-2">Add a Photo</h1>
-            <p class="text-gray-500 mb-8">Choose an avatar or upload your own.</p>
-
-            <div class="flex flex-col items-center gap-6">
-                <div class="relative w-40 h-40">
-                    <div class="w-full h-full rounded-full overflow-hidden border-4 border-gray-100 shadow-xl bg-gray-50">
-                        <img id="preview-photo" src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix" class="w-full h-full object-cover" />
-                    </div>
-                    <div class="file-upload-wrapper absolute bottom-0 right-0">
-                        <div class="w-10 h-10 bg-[#4f85ff] rounded-full flex items-center justify-center text-white shadow-lg cursor-pointer hover:bg-blue-600 transition-colors">
-                            <i class="ph-bold ph-camera text-xl"></i>
-                        </div>
-                        <input type="file" id="photo-upload" accept="image/*" onchange="handlePhotoUpload(this)" />
-                    </div>
-                </div>
-
-                <div class="grid grid-cols-4 gap-3 w-full mt-4">
-                    <button onclick="selectAvatar('Felix')" class="aspect-square rounded-xl bg-gray-100 overflow-hidden hover:ring-2 ring-[#4f85ff] p-1"><img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix" class="w-full h-full"/></button>
-                    <button onclick="selectAvatar('Aneka')" class="aspect-square rounded-xl bg-gray-100 overflow-hidden hover:ring-2 ring-[#4f85ff] p-1"><img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Aneka" class="w-full h-full"/></button>
-                    <button onclick="selectAvatar('Zack')" class="aspect-square rounded-xl bg-gray-100 overflow-hidden hover:ring-2 ring-[#4f85ff] p-1"><img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Zack" class="w-full h-full"/></button>
-                    <button onclick="selectAvatar('Molly')" class="aspect-square rounded-xl bg-gray-100 overflow-hidden hover:ring-2 ring-[#4f85ff] p-1"><img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Molly" class="w-full h-full"/></button>
-                </div>
-            </div>
-
-            <button onclick="switchView('view-name')" class="w-full py-4 mt-auto mb-6 rounded-full font-bold text-lg transition-transform active:scale-95 flex items-center justify-center gap-2 bg-[#4f85ff] text-white shadow-lg shadow-blue-200">
-                Next
-            </button>
-        </div>
-
-        <!-- 4. NAME INPUT -->
+        <!-- 3. NAME INPUT -->
         <div id="view-name" class="view-section bg-white p-8 pt-12">
-            <button onclick="switchView('view-photo')" class="mb-6 w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors">
-                <i class="ph ph-arrow-left text-gray-900 text-2xl"></i>
+            <button onclick="switchView('view-gender')" class="mb-6 w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center hover:bg-gray-100 transition-colors">
+                <i class="ph ph-arrow-left text-gray-900 text-xl"></i>
             </button>
             
             <h1 class="text-3xl font-bold text-gray-900 mb-2">What's your name?</h1>
             <p class="text-gray-500 mb-8">This will be shown on your profile.</p>
 
-            <div class="bg-gray-50 rounded-2xl px-4 py-3 mb-10 border-2 border-transparent focus-within:border-[#4f85ff] transition-all">
-                <input id="name-input" type="text" placeholder="Enter your name" class="w-full text-xl font-bold outline-none text-gray-900 placeholder:text-gray-300 bg-transparent">
+            <div class="border-b-2 border-gray-200 focus-within:border-[#4f85ff] py-2 mb-10 transition-colors">
+                <input id="name-input" type="text" placeholder="Enter your name" class="w-full text-2xl font-bold outline-none text-gray-900 placeholder:text-gray-300 bg-transparent">
             </div>
 
-            <button onclick="submitName()" class="w-full py-4 rounded-full font-bold text-lg transition-transform active:scale-95 flex items-center justify-center gap-2 bg-[#4f85ff] text-white shadow-lg shadow-blue-200">
+            <button onclick="submitName()" class="w-full py-4 rounded-full font-bold text-lg transition-transform active:scale-95 flex items-center justify-center gap-2 bg-[#4f85ff] text-white shadow-xl shadow-blue-200">
                 Continue
             </button>
         </div>
 
-        <!-- 5. ONBOARDING / PHONE -->
-        <div id="view-onboarding" class="view-section bg-white flex flex-col">
-            <div class="flex-1 flex flex-col items-center justify-center p-8 text-center relative">
-                <!-- Background Blobs -->
-                <div class="absolute top-10 left-10 w-32 h-32 bg-purple-200 rounded-full blur-3xl opacity-30"></div>
-                <div class="absolute bottom-20 right-10 w-40 h-40 bg-pink-200 rounded-full blur-3xl opacity-30"></div>
+        <!-- 4. AVATAR SELECTION (NEW) -->
+        <div id="view-avatar" class="view-section bg-white p-8 pt-12">
+            <button onclick="switchView('view-name')" class="mb-6 w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center hover:bg-gray-100 transition-colors">
+                <i class="ph ph-arrow-left text-gray-900 text-xl"></i>
+            </button>
 
-                <div class="relative mb-8">
-                    <div class="w-48 h-64 bg-gray-200 rounded-[2rem] overflow-hidden shadow-2xl rotate-[-6deg] border-4 border-white absolute top-0 left-0 -translate-x-4">
-                         <img src="https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?w=400&h=600&fit=crop&q=80" class="w-full h-full object-cover">
+            <h1 class="text-3xl font-bold text-gray-900 mb-2">Add a Photo</h1>
+            <p class="text-gray-500 mb-8">Choose your profile picture.</p>
+
+            <div class="flex flex-col items-center gap-6 mb-10">
+                <div class="relative group cursor-pointer" onclick="document.getElementById('file-upload').click()">
+                    <div id="avatar-preview" class="w-40 h-40 rounded-full bg-gray-100 border-4 border-white shadow-lg overflow-hidden flex items-center justify-center avatar-preview">
+                        <i id="avatar-placeholder" class="ph ph-camera text-4xl text-gray-400"></i>
                     </div>
-                    <div class="w-48 h-64 bg-gray-200 rounded-[2rem] overflow-hidden shadow-2xl rotate-[6deg] border-4 border-white relative z-10 translate-x-4">
-                         <img src="https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=400&h=600&fit=crop&q=80" class="w-full h-full object-cover">
+                    <div class="absolute bottom-2 right-2 bg-[#4f85ff] text-white w-10 h-10 rounded-full flex items-center justify-center shadow-md border-2 border-white">
+                        <i class="ph ph-pencil-simple text-lg"></i>
                     </div>
                 </div>
+                <input type="file" id="file-upload" accept="image/*" class="hidden" onchange="handleFileUpload(event)">
+                
+                <p class="text-sm text-gray-400">Tap to upload from Gallery</p>
+            </div>
 
-                <h1 class="text-3xl font-bold text-gray-900 mb-2">Find Your <span class="text-[#ff4f85]">Match</span></h1>
-                <p class="text-gray-500 text-sm px-6">Connect with real people in real-time. Video calls, audio chats and more.</p>
+            <button onclick="finishOnboarding()" class="w-full py-4 rounded-full font-bold text-lg transition-transform active:scale-95 flex items-center justify-center gap-2 bg-[#4f85ff] text-white shadow-xl shadow-blue-200">
+                Look's Good!
+            </button>
+            <button onclick="finishOnboarding()" class="w-full py-3 mt-3 text-gray-500 font-medium text-sm">Skip for now</button>
+        </div>
+
+        <!-- 5. ONBOARDING / PHONE -->
+        <div id="view-login" class="view-section bg-white">
+             <!-- Same as before but updated logic to skip if already logged in -->
+            <div class="flex-1 flex flex-col items-center justify-center p-8 text-center">
+                <h1 class="text-3xl font-cursive text-[#4f85ff] mb-1">Mood</h1>
+                <h1 class="text-4xl font-cursive text-[#ff4f85] mb-8">Connecto</h1>
+                
+                <div class="w-64 h-64 bg-blue-50 rounded-full flex items-center justify-center mb-8 relative overflow-hidden shadow-inner ring-4 ring-white ring-offset-2">
+                   <img id="login-cover" src="https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?w=300&h=300&fit=crop&q=80" alt="Cover" class="w-full h-full object-cover opacity-90 transition-transform hover:scale-105 duration-700" />
+                </div>
+                
+                <h2 class="text-xl font-bold text-gray-900 mb-2">First Call @ just ₹5/min</h2>
             </div>
             
-            <div class="p-6 bg-white pb-10 rounded-t-3xl shadow-[0_-5px_20px_rgba(0,0,0,0.05)] z-20">
-                <div class="flex items-center gap-2 mb-4">
-                     <div class="h-[1px] flex-1 bg-gray-200"></div>
-                     <span class="text-xs font-bold text-gray-400 uppercase">Login / Sign Up</span>
-                     <div class="h-[1px] flex-1 bg-gray-200"></div>
-                </div>
-
-                <div class="border border-gray-200 rounded-xl p-1 mb-6 flex items-center bg-gray-50">
+            <div class="p-6 bg-white pb-10 rounded-t-3xl shadow-[0_-5px_20px_rgba(0,0,0,0.03)]">
+                <div class="border border-gray-200 rounded-2xl p-2 mb-6 flex items-center bg-gray-50 focus-within:bg-white focus-within:border-[#4f85ff] focus-within:ring-2 focus-within:ring-blue-100 transition-all">
                   <div class="flex items-center gap-2 px-3 border-r border-gray-300">
-                    <img src="https://flagcdn.com/w20/in.png" alt="IN" class="w-6 rounded-sm shadow-sm"/>
+                    <span class="text-xl">🇮🇳</span>
                     <span class="font-bold text-gray-700">+91</span>
                   </div>
-                  <input id="mobile-input" type="tel" placeholder="Mobile Number" class="flex-1 p-3 bg-transparent outline-none font-bold text-lg placeholder:text-gray-400 text-gray-900" maxlength="10">
+                  <input id="mobile-input" type="tel" placeholder="Your Mobile Number" class="flex-1 p-3 bg-transparent outline-none font-bold text-lg text-gray-900 placeholder:text-gray-400 placeholder:font-medium" maxlength="10">
                 </div>
 
-                <button id="get-otp-btn" onclick="goToOtp()" class="w-full py-4 rounded-full font-bold text-lg transition-transform active:scale-95 flex items-center justify-center gap-2 bg-gray-900 text-white shadow-xl disabled:opacity-50">
-                    Get OTP <i class="ph-bold ph-arrow-right"></i>
+                <button id="get-otp-btn" onclick="goToOtp()" class="w-full py-4 rounded-full font-bold text-lg transition-transform active:scale-95 flex items-center justify-center gap-2 bg-[#4f85ff] text-white shadow-xl shadow-blue-200">
+                    Get OTP
                 </button>
+                
+                <p class="text-xs text-center text-gray-400 mt-4 leading-relaxed">
+                  By tapping, you agree to our <span class="underline text-gray-600">Terms</span> and <span class="underline text-gray-600">Privacy</span>.
+                </p>
             </div>
         </div>
 
         <!-- 6. OTP SCREEN -->
         <div id="view-otp" class="view-section bg-white p-6 pt-12">
-            <button onclick="switchView('view-onboarding')" class="mb-6 w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors">
-                <i class="ph ph-arrow-left text-gray-900 text-2xl"></i>
+            <button onclick="switchView('view-login')" class="mb-8 w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center hover:bg-gray-100 transition-colors">
+                <i class="ph ph-arrow-left text-gray-900 text-xl"></i>
             </button>
             
-            <div class="mb-10 text-center">
-                <h1 class="text-3xl font-bold text-gray-900 mb-2">Verification</h1>
-                <p class="text-gray-500">
-                  Enter the code sent to <span id="display-phone" class="font-bold text-gray-900">+91 </span>
+            <div class="mb-10">
+                <h1 class="text-3xl font-bold text-gray-900 mb-2">Verify OTP</h1>
+                <p class="text-gray-500 text-base">
+                  Enter code sent to <span id="display-phone" class="font-bold text-gray-900">+91 </span>
                 </p>
             </div>
 
-            <div class="mb-12 w-full flex justify-center gap-4" id="otp-container">
-                <input type="tel" maxlength="1" class="otp-input w-14 h-16 rounded-2xl text-center text-3xl font-bold outline-none transition-all duration-200 border-2 border-gray-100 bg-gray-50 text-gray-900">
-                <input type="tel" maxlength="1" class="otp-input w-14 h-16 rounded-2xl text-center text-3xl font-bold outline-none transition-all duration-200 border-2 border-gray-100 bg-gray-50 text-gray-900">
-                <input type="tel" maxlength="1" class="otp-input w-14 h-16 rounded-2xl text-center text-3xl font-bold outline-none transition-all duration-200 border-2 border-gray-100 bg-gray-50 text-gray-900">
-                <input type="tel" maxlength="1" class="otp-input w-14 h-16 rounded-2xl text-center text-3xl font-bold outline-none transition-all duration-200 border-2 border-gray-100 bg-gray-50 text-gray-900">
+            <div class="mb-12 w-full">
+               <div class="flex justify-between gap-3" id="otp-container">
+                    <!-- OTP Inputs generated here -->
+                    <input type="tel" maxlength="1" class="otp-input w-16 h-16 rounded-2xl text-center text-3xl font-bold outline-none border-2 border-gray-200 bg-gray-50 text-gray-900 transition-all">
+                    <input type="tel" maxlength="1" class="otp-input w-16 h-16 rounded-2xl text-center text-3xl font-bold outline-none border-2 border-gray-200 bg-gray-50 text-gray-900 transition-all">
+                    <input type="tel" maxlength="1" class="otp-input w-16 h-16 rounded-2xl text-center text-3xl font-bold outline-none border-2 border-gray-200 bg-gray-50 text-gray-900 transition-all">
+                    <input type="tel" maxlength="1" class="otp-input w-16 h-16 rounded-2xl text-center text-3xl font-bold outline-none border-2 border-gray-200 bg-gray-50 text-gray-900 transition-all">
+               </div>
             </div>
 
-            <button id="verify-otp-btn" onclick="verifyOtp()" class="w-full py-4 rounded-full font-bold text-lg transition-transform active:scale-95 flex items-center justify-center gap-2 bg-[#4f85ff] text-white shadow-lg shadow-blue-200 disabled:opacity-50">
-                Verify & Login
+            <button id="verify-otp-btn" onclick="verifyOtp()" class="w-full py-4 rounded-full font-bold text-lg transition-transform active:scale-95 flex items-center justify-center gap-2 bg-[#4f85ff] text-white shadow-xl shadow-blue-200">
+                Verify & Proceed
             </button>
-            
-            <p class="text-center mt-6 text-sm font-semibold text-[#4f85ff] cursor-pointer" onclick="goToOtp()">Resend Code</p>
         </div>
 
         <!-- 7. MAIN APP -->
-        <div id="view-main" class="view-section bg-white">
+        <div id="view-main" class="view-section bg-gray-50">
             <!-- Dynamic Content Area -->
-            <div id="main-content" class="flex-1 overflow-y-auto pb-0 relative bg-gray-50">
+            <div id="main-content" class="flex-1 overflow-y-auto pb-0 relative bg-[#f8f9fe]">
                 
                 <!-- HOME TAB CONTENT -->
                 <div id="tab-home" class="flex flex-col min-h-full pb-24">
                     <!-- Header -->
-                    <div class="px-4 py-4 flex justify-between items-center bg-white sticky top-0 z-10 shadow-[0_2px_15px_rgba(0,0,0,0.03)]">
-                        <div class="flex items-center gap-2">
-                            <div class="w-8 h-8 bg-gradient-to-br from-[#4f85ff] to-[#ff4f85] rounded-lg flex items-center justify-center text-white">
-                                <i class="ph-bold ph-infinity"></i>
-                            </div>
-                            <div>
-                                <h1 class="font-cursive text-2xl text-gray-900 leading-none">Mood</h1>
+                    <div class="px-5 py-4 flex justify-between items-center bg-white sticky top-0 z-30 shadow-sm">
+                        <div>
+                            <span class="text-xl font-cursive text-[#ff4f85]">Mood</span>
+                            <span class="text-xl font-cursive text-gray-900 ml-1">Connecto</span>
+                        </div>
+                        <div class="flex gap-3 items-center">
+                            <!-- PRO Plus Button -->
+                            <button onclick="openWallet()" class="bg-[#4f85ff] text-white pl-4 pr-1 py-1 rounded-full text-sm font-bold flex items-center gap-2 shadow-lg shadow-blue-200 active:scale-95 transition-transform">
+                                ₹<span class="balance-display">0.00</span> 
+                                <div class="bg-white text-[#4f85ff] rounded-full w-6 h-6 flex items-center justify-center text-lg shadow-sm">
+                                    <i class="ph-bold ph-plus text-xs"></i>
+                                </div>
+                            </button>
+                            <div onclick="switchTab('profile')" class="w-10 h-10 rounded-full bg-gray-100 overflow-hidden border-2 border-white shadow-md cursor-pointer relative">
+                                <img id="header-avatar" src="" class="w-full h-full object-cover" />
                             </div>
                         </div>
-                        
-                        <!-- Wallet Button (Pill Shape) -->
-                        <button onclick="openWallet()" class="flex items-center bg-blue-50 border border-blue-100 rounded-full pl-3 pr-1 py-1 gap-2 active:scale-95 transition-transform">
-                            <span class="text-[#4f85ff] font-bold text-sm">₹ <span class="balance-display">0.00</span></span>
-                            <div class="w-7 h-7 bg-[#4f85ff] rounded-full flex items-center justify-center text-white shadow-md">
-                                <i class="ph-bold ph-plus"></i>
-                            </div>
-                        </button>
                     </div>
 
-                    <!-- Banner (Random Call) -->
-                    <div class="p-4">
-                        <div class="bg-gradient-to-r from-pink-100 to-purple-100 rounded-3xl p-5 flex justify-between items-center relative overflow-hidden shadow-sm border border-pink-200">
-                            <!-- Decor -->
-                            <div class="absolute -right-6 -bottom-6 w-32 h-32 bg-white/40 rounded-full blur-2xl"></div>
-                            
-                            <div class="relative z-10">
-                                <p class="text-[#4f85ff] text-xs font-bold uppercase tracking-wider mb-1">Stay Connected</p>
-                                <h3 class="text-gray-900 text-2xl font-extrabold leading-tight">Make<br>Friends</h3>
-                                <div class="mt-2 bg-white/60 backdrop-blur-sm px-2 py-1 rounded-md inline-block">
-                                    <p class="text-pink-600 text-xs font-bold">@ ₹5/min only!</p>
+                    <!-- Banner -->
+                    <div class="px-4 mt-4 mb-2 shrink-0">
+                        <div class="bg-gradient-to-r from-purple-200 via-pink-200 to-red-200 rounded-3xl p-5 flex justify-between items-center relative overflow-hidden shadow-sm">
+                            <div class="absolute -right-6 -bottom-6 w-32 h-32 bg-white/30 rounded-full blur-2xl"></div>
+                            <div class="z-10">
+                                <p class="text-[#4f85ff] text-xs font-bold mb-1 uppercase tracking-wider">Stay Connected</p>
+                                <h3 class="text-[#4f85ff] text-xl font-bold leading-tight">Make<br>Friends</h3>
+                                <div class="mt-2 inline-block bg-white/80 backdrop-blur-sm px-2 py-0.5 rounded-md">
+                                    <p class="text-pink-600 text-[10px] font-bold">@ ₹5/min only!</p>
                                 </div>
                             </div>
-                            
-                            <button onclick="startRandomCall()" class="relative z-10 bg-gradient-to-r from-[#ff4f85] to-pink-600 text-white px-5 py-3 rounded-full text-sm font-bold shadow-lg shadow-pink-200 flex items-center gap-2 active:scale-95 transition-transform">
-                                Random Call <i class="ph-fill ph-lightning-item text-yellow-300"></i>
+                            <button onclick="checkBalanceAndCall()" class="z-10 bg-gradient-to-r from-[#ff4f85] to-[#ff4f85] text-white px-5 py-2.5 rounded-full text-sm font-bold shadow-lg shadow-pink-200 flex items-center gap-2 active:scale-95 transition-transform hover:shadow-xl">
+                                Random Call <i class="ph-fill ph-lightning-fill"></i>
                             </button>
                         </div>
                     </div>
 
                     <!-- Filters -->
-                    <div class="px-4 mb-4">
-                        <div class="flex gap-3 overflow-x-auto no-scrollbar py-1">
-                            <button class="px-6 py-2 rounded-full text-sm font-bold whitespace-nowrap bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-md shadow-pink-200/50">All</button>
-                            <button class="px-6 py-2 rounded-full text-sm font-bold whitespace-nowrap bg-white border border-gray-200 text-gray-600 shadow-sm">Star ⭐</button>
-                            <button class="px-6 py-2 rounded-full text-sm font-bold whitespace-nowrap bg-white border border-gray-200 text-gray-600 shadow-sm">New 🔥</button>
-                            <button class="px-6 py-2 rounded-full text-sm font-bold whitespace-nowrap bg-white border border-gray-200 text-gray-600 shadow-sm">Relationship 💖</button>
+                    <div class="px-4 py-2 shrink-0">
+                        <div class="flex gap-3 overflow-x-auto no-scrollbar py-2">
+                            <button class="px-5 py-2 rounded-full text-sm font-bold whitespace-nowrap bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-md">All</button>
+                            <button class="px-5 py-2 rounded-full text-sm font-bold whitespace-nowrap bg-white border border-gray-200 text-gray-600">Star</button>
+                            <button class="px-5 py-2 rounded-full text-sm font-bold whitespace-nowrap bg-white border border-gray-200 text-gray-600">New</button>
+                            <button class="px-5 py-2 rounded-full text-sm font-bold whitespace-nowrap bg-white border border-gray-200 text-gray-600">Relationship</button>
                         </div>
                     </div>
 
                     <!-- Experts List -->
-                    <div id="experts-list" class="px-4 space-y-4">
+                    <div id="experts-list" class="px-4 space-y-3 pt-2">
                         <!-- JS injected here -->
                     </div>
                 </div>
 
                 <!-- RECENTS TAB CONTENT -->
                 <div id="tab-recents" class="hidden flex-col h-full bg-white">
-                    <div class="px-4 py-4 border-b border-gray-100 bg-white sticky top-0 z-10">
-                        <h1 class="text-2xl font-bold text-gray-900">Recent Calls</h1>
+                    <div class="px-5 py-4 border-b border-gray-100 bg-white sticky top-0 z-30">
+                        <h1 class="text-2xl font-bold text-gray-900">Recents</h1>
                     </div>
-                    <div id="recents-list" class="flex-1 overflow-y-auto p-4 space-y-4 pb-24">
-                        <!-- Empty State -->
-                        <div id="recents-empty" class="h-full flex flex-col items-center justify-center text-gray-400 mt-20">
-                            <div class="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mb-4">
-                                <i class="ph-duotone ph-clock text-4xl text-gray-300"></i>
-                            </div>
-                            <p class="font-medium">No recent calls yet</p>
-                            <button onclick="switchTab('home')" class="mt-4 text-[#4f85ff] font-bold text-sm">Start a call</button>
+                    <div id="recents-list" class="flex-1 flex flex-col p-4 space-y-2">
+                        <!-- JS Injected List -->
+                        <div id="empty-recents" class="flex-1 flex flex-col items-center justify-center text-gray-300 pb-20">
+                            <i class="ph ph-clock text-6xl mb-4 opacity-30"></i>
+                            <p class="font-medium">No recent calls</p>
                         </div>
                     </div>
                 </div>
 
                 <!-- PROFILE TAB CONTENT -->
-                <div id="tab-profile" class="hidden flex-col h-full bg-gray-50">
-                     <div class="flex items-center justify-between px-6 py-5 bg-white shrink-0 sticky top-0 z-10 shadow-[0_2px_15px_rgba(0,0,0,0.02)]">
-                        <h1 class="text-2xl font-bold text-gray-900">My Profile</h1>
+                <div id="tab-profile" class="hidden flex-col h-full bg-[#f8f9fe]">
+                     <div class="px-5 py-4 flex justify-between items-center bg-white sticky top-0 z-30 shadow-sm">
+                        <h1 class="text-xl font-bold text-gray-900">My Profile</h1>
+                        <div onclick="openSettings()" class="w-8 h-8 flex items-center justify-center rounded-full bg-gray-50 text-gray-600">
+                            <i class="ph ph-gear text-xl"></i>
+                        </div>
                     </div>
 
                     <div class="flex-1 px-4 py-6 pb-24 overflow-y-auto">
-                        <!-- Profile Card -->
-                        <div class="bg-white rounded-3xl p-6 text-center shadow-[0_4px_20px_rgba(0,0,0,0.03)] mb-6 border border-gray-100">
-                            <div class="relative w-28 h-28 mx-auto mb-4">
-                                <div class="absolute inset-0 bg-gradient-to-tr from-blue-100 to-pink-100 rounded-full animate-pulse"></div>
-                                <img id="profile-img-display" src="" class="w-28 h-28 rounded-full relative z-10 border-4 border-white shadow-md object-cover" />
-                                <button onclick="switchView('view-photo')" class="absolute bottom-1 right-1 z-20 bg-gray-900 text-white p-2 rounded-full shadow-lg active:scale-90 transition-transform">
-                                    <i class="ph-bold ph-pencil-simple text-sm"></i>
-                                </button>
+                        <div class="bg-white rounded-3xl p-6 text-center shadow-sm border border-gray-100 mb-5 relative overflow-hidden">
+                            <div class="absolute top-0 left-0 w-full h-20 bg-gradient-to-r from-blue-50 to-pink-50"></div>
+                            <div class="relative w-28 h-28 mx-auto mb-3 mt-4">
+                                <div class="absolute inset-0 bg-white rounded-full p-1">
+                                    <img id="profile-avatar-large" src="" class="w-full h-full rounded-full object-cover border-4 border-white shadow-md" />
+                                </div>
+                                <div class="absolute bottom-1 right-1 bg-green-500 w-5 h-5 rounded-full border-2 border-white"></div>
                             </div>
-                            <h2 id="profile-name-display" class="text-2xl font-bold text-gray-900">User</h2>
-                            <p class="text-gray-500 text-sm mt-1 font-medium">+91 <span id="profile-phone-display"></span></p>
+                            <h2 id="profile-name" class="text-2xl font-bold text-gray-900">User</h2>
+                            <p class="text-gray-500 text-sm mt-1">ID: 839201 • Member</p>
                             
-                            <div class="grid grid-cols-2 gap-3 mt-6">
-                                <button class="py-3 rounded-2xl bg-gray-50 text-gray-700 font-bold text-sm border border-gray-100 hover:bg-gray-100 transition-colors">Edit Profile</button>
-                                <button onclick="openWallet()" class="py-3 rounded-2xl bg-[#4f85ff] text-white font-bold text-sm shadow-lg shadow-blue-200 hover:shadow-blue-300 transition-all">Add Money</button>
+                            <div class="flex gap-3 mt-6">
+                                <button onclick="openWallet()" class="flex-1 py-3 rounded-full bg-[#4f85ff] text-white font-bold text-sm shadow-lg shadow-blue-200 active:scale-95 transition-transform flex items-center justify-center gap-2">
+                                    <i class="ph-bold ph-wallet"></i> Wallet: ₹<span class="balance-display">0.00</span>
+                                </button>
                             </div>
                         </div>
 
-                        <!-- Menu Items (Clean List Design) -->
-                        <div class="bg-white rounded-3xl overflow-hidden shadow-[0_4px_20px_rgba(0,0,0,0.03)] border border-gray-100">
-                            <div onclick="openWallet()" class="p-5 flex items-center justify-between border-b border-gray-50 cursor-pointer active:bg-gray-50 transition-colors">
+                        <div class="space-y-3">
+                            <div onclick="openWallet()" class="bg-white p-4 rounded-2xl flex items-center justify-between shadow-sm border border-gray-100 active:scale-[0.99] transition-transform cursor-pointer">
                                 <div class="flex items-center gap-4">
-                                    <div class="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center text-[#4f85ff]"><i class="ph-fill ph-wallet text-xl"></i></div>
-                                    <span class="font-bold text-gray-800 text-base">Wallet & Transactions</span>
+                                    <div class="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center text-[#4f85ff]"><i class="ph-fill ph-arrows-left-right text-xl"></i></div>
+                                    <span class="font-bold text-gray-800">Transactions</span>
                                 </div>
-                                <i class="ph-bold ph-caret-right text-gray-300"></i>
+                                <i class="ph ph-caret-right text-gray-400 text-xl"></i>
                             </div>
-                            <div class="p-5 flex items-center justify-between border-b border-gray-50 cursor-pointer active:bg-gray-50 transition-colors">
+                            
+                            <div class="bg-white p-4 rounded-2xl flex items-center justify-between shadow-sm border border-gray-100 active:scale-[0.99] transition-transform cursor-pointer">
                                 <div class="flex items-center gap-4">
-                                    <div class="w-10 h-10 rounded-full bg-green-50 flex items-center justify-center text-green-500"><i class="ph-fill ph-shield-check text-xl"></i></div>
-                                    <span class="font-bold text-gray-800 text-base">Privacy Policy</span>
+                                    <div class="w-10 h-10 rounded-full bg-yellow-50 flex items-center justify-center text-yellow-500"><i class="ph-fill ph-star text-xl"></i></div>
+                                    <span class="font-bold text-gray-800">Rate us</span>
                                 </div>
-                                <i class="ph-bold ph-caret-right text-gray-300"></i>
+                                <i class="ph ph-caret-right text-gray-400 text-xl"></i>
                             </div>
-                            <div class="p-5 flex items-center justify-between border-b border-gray-50 cursor-pointer active:bg-gray-50 transition-colors">
+                            
+                            <div class="bg-white p-4 rounded-2xl flex items-center justify-between shadow-sm border border-gray-100 active:scale-[0.99] transition-transform cursor-pointer">
                                 <div class="flex items-center gap-4">
-                                    <div class="w-10 h-10 rounded-full bg-purple-50 flex items-center justify-center text-purple-500"><i class="ph-fill ph-file-text text-xl"></i></div>
-                                    <span class="font-bold text-gray-800 text-base">Terms & Conditions</span>
+                                    <div class="w-10 h-10 rounded-full bg-pink-50 flex items-center justify-center text-pink-500"><i class="ph-fill ph-heart text-xl"></i></div>
+                                    <span class="font-bold text-gray-800">Share App</span>
                                 </div>
-                                <i class="ph-bold ph-caret-right text-gray-300"></i>
-                            </div>
-                             <div onclick="switchView('view-splash')" class="p-5 flex items-center justify-between cursor-pointer active:bg-red-50 hover:bg-red-50/50 transition-colors group">
-                                <div class="flex items-center gap-4">
-                                    <div class="w-10 h-10 rounded-full bg-red-50 flex items-center justify-center text-red-500 group-hover:bg-red-100"><i class="ph-fill ph-sign-out text-xl"></i></div>
-                                    <span class="font-bold text-red-500 text-base">Logout</span>
-                                </div>
-                                <i class="ph-bold ph-caret-right text-red-200"></i>
+                                <i class="ph ph-caret-right text-gray-400 text-xl"></i>
                             </div>
                         </div>
-                        
-                        <p class="text-center text-gray-400 text-xs font-semibold mt-8 mb-4">Version 2.5.0 • Made with ❤️</p>
                     </div>
                 </div>
 
             </div>
 
             <!-- FIXED BOTTOM NAV -->
-            <div id="bottom-nav" class="shrink-0 bg-white px-8 py-3 flex justify-between items-center shadow-[0_-5px_25px_rgba(0,0,0,0.06)] rounded-t-3xl z-40 relative">
-                <button onclick="switchTab('home')" id="nav-btn-home" class="flex flex-col items-center gap-1 transition-all duration-200 w-16 text-[#4f85ff] -translate-y-2">
-                    <div id="nav-icon-home" class="p-3 rounded-full transition-all bg-blue-50 text-[#4f85ff] shadow-sm">
+            <div id="bottom-nav" class="shrink-0 bg-white px-6 py-2 pb-4 flex justify-between items-center shadow-[0_-5px_25px_rgba(0,0,0,0.04)] rounded-t-3xl z-40 border-t border-gray-50">
+                <button onclick="switchTab('home')" id="nav-btn-home" class="flex flex-col items-center gap-1 transition-all duration-200 w-16 text-[#4f85ff] -translate-y-1">
+                    <div id="nav-icon-home" class="p-2 rounded-full transition-all bg-blue-50/80">
                         <i class="ph-fill ph-house text-2xl"></i>
                     </div>
+                    <span class="text-[10px] font-bold">Home</span>
                 </button>
 
-                <button onclick="switchTab('recents')" id="nav-btn-recents" class="flex flex-col items-center gap-1 transition-all duration-200 w-16 text-gray-400">
-                    <div id="nav-icon-recents" class="p-2 rounded-full transition-all bg-transparent">
-                        <i class="ph-bold ph-clock text-2xl"></i>
+                <button onclick="switchTab('recents')" id="nav-btn-recents" class="flex flex-col items-center gap-1 transition-all duration-200 w-16 text-gray-400 group">
+                    <div id="nav-icon-recents" class="p-2 rounded-full transition-all bg-transparent group-active:scale-90">
+                        <i class="ph-fill ph-clock text-2xl"></i>
                     </div>
+                    <span class="text-[10px] font-bold group-active:text-[#4f85ff]">Recents</span>
                 </button>
 
-                <button onclick="switchTab('profile')" id="nav-btn-profile" class="flex flex-col items-center gap-1 transition-all duration-200 w-16 text-gray-400">
-                    <div id="nav-icon-profile" class="p-2 rounded-full transition-all bg-transparent">
-                        <i class="ph-bold ph-user text-2xl"></i>
+                <button onclick="switchTab('profile')" id="nav-btn-profile" class="flex flex-col items-center gap-1 transition-all duration-200 w-16 text-gray-400 group">
+                    <div id="nav-icon-profile" class="p-2 rounded-full transition-all bg-transparent group-active:scale-90">
+                        <i class="ph-fill ph-user text-2xl"></i>
                     </div>
+                    <span class="text-[10px] font-bold group-active:text-[#4f85ff]">Profile</span>
                 </button>
             </div>
         </div>
 
-        <!-- 8. VIDEO CALL SCREEN (Realistic Overlay) -->
-        <div id="view-calling" class="view-section absolute inset-0 bg-gray-900 z-[100] hidden flex-col">
-            <!-- Background Image of the person you are calling -->
-            <img id="call-bg-image" src="" class="absolute inset-0 w-full h-full object-cover opacity-60">
-            <div class="absolute inset-0 bg-gradient-to-b from-black/60 via-transparent to-black/80"></div>
-            
-            <!-- Header Info -->
-            <div class="relative z-10 p-6 pt-10 flex flex-col items-center">
-                 <h2 id="call-status" class="text-white/80 text-sm font-bold uppercase tracking-widest mb-2 animate-pulse">Connecting...</h2>
-                 <h1 id="call-name" class="text-white text-3xl font-bold">Name</h1>
-                 <p id="call-timer" class="text-white/90 font-mono text-lg mt-1 hidden">00:00</p>
+        <!-- 8. WALLET VIEW (Sub View) -->
+        <div id="view-wallet" class="view-section absolute inset-0 bg-[#f8f9fe] z-[60] flex flex-col hidden">
+            <div class="flex items-center justify-between px-5 py-4 bg-white shadow-sm shrink-0">
+                <div class="flex items-center gap-3">
+                    <button onclick="closeSubView()" class="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center hover:bg-gray-100">
+                        <i class="ph-bold ph-arrow-left text-gray-800 text-xl"></i>
+                    </button>
+                    <h1 class="text-xl font-bold text-gray-900">Wallet</h1>
+                </div>
+                <button class="px-4 py-1.5 rounded-full border border-[#4f85ff] text-[#4f85ff] text-sm font-bold bg-white">
+                    History
+                </button>
             </div>
             
-            <!-- Video Mock (Center) -->
-            <div class="flex-1 flex items-center justify-center relative z-10">
-                 <!-- The "User" preview (PiP) -->
-                 <div class="absolute right-4 top-4 w-28 h-36 bg-gray-800 rounded-xl overflow-hidden border-2 border-white/20 shadow-2xl">
-                     <img id="user-pip-img" src="" class="w-full h-full object-cover">
-                 </div>
-                 
-                 <!-- Center Ripple for connecting state -->
-                 <div id="connecting-ripple" class="call-pulse w-32 h-32 rounded-full bg-[#ff4f85]/20 flex items-center justify-center backdrop-blur-sm border border-white/10">
-                    <div class="w-24 h-24 rounded-full overflow-hidden border-2 border-white">
-                         <img id="call-center-img" src="" class="w-full h-full object-cover">
+            <div class="flex-1 overflow-y-auto px-4 pb-4">
+                <div class="bg-white rounded-3xl p-6 mb-6 shadow-sm border border-gray-100 flex justify-between items-center mt-4">
+                    <div>
+                        <span class="text-gray-500 font-medium text-sm">Available Balance</span>
+                        <div class="text-3xl font-bold text-[#4f85ff] mt-1">₹<span class="balance-display">0.00</span></div>
                     </div>
-                 </div>
-            </div>
-
-            <!-- Controls -->
-            <div class="relative z-10 pb-12 px-8">
-                <div class="flex justify-center items-center gap-8">
-                    <button class="w-14 h-14 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center text-white hover:bg-white/30 transition-colors">
-                        <i class="ph-fill ph-microphone-slash text-2xl"></i>
-                    </button>
-                    
-                    <button onclick="endCall()" class="w-20 h-20 rounded-full bg-red-500 flex items-center justify-center text-white shadow-lg shadow-red-500/50 hover:bg-red-600 active:scale-95 transition-all">
-                        <i class="ph-fill ph-phone-disconnect text-4xl"></i>
-                    </button>
-                    
-                    <button class="w-14 h-14 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center text-white hover:bg-white/30 transition-colors">
-                        <i class="ph-fill ph-video-camera-slash text-2xl"></i>
-                    </button>
-                </div>
-                <p class="text-white/50 text-center text-xs mt-6">End-to-end encrypted</p>
-            </div>
-        </div>
-
-        <!-- 9. WALLET MODAL (Sub View) -->
-        <div id="view-wallet" class="view-section sub-view absolute inset-0 bg-white z-[60] flex flex-col rounded-t-3xl shadow-[0_-10px_40px_rgba(0,0,0,0.1)] mt-10">
-            <div class="flex items-center justify-between px-6 py-5 bg-white border-b border-gray-100 shrink-0 rounded-t-3xl">
-                <div class="flex items-center gap-4">
-                    <button onclick="closeSubView()" class="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center hover:bg-gray-100 transition-colors">
-                        <i class="ph-bold ph-arrow-down text-gray-800 text-xl"></i>
-                    </button>
-                    <h1 class="text-xl font-bold text-gray-900">My Wallet</h1>
-                </div>
-            </div>
-            
-            <div class="flex-1 overflow-y-auto px-6 pb-6 bg-gray-50">
-                <!-- Balance Card -->
-                <div class="bg-gradient-to-r from-[#4f85ff] to-[#3b6ecc] rounded-3xl p-6 mt-6 shadow-lg shadow-blue-200 text-white relative overflow-hidden">
-                    <div class="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2 blur-2xl"></div>
-                    <p class="text-blue-100 font-medium text-sm mb-1">Available Balance</p>
-                    <h1 class="text-4xl font-bold">₹ <span class="balance-display">0.00</span></h1>
-                    <div class="mt-4 flex gap-2">
-                        <div class="bg-white/20 backdrop-blur-sm px-3 py-1 rounded-lg text-xs font-bold">Safe</div>
-                        <div class="bg-white/20 backdrop-blur-sm px-3 py-1 rounded-lg text-xs font-bold">Secure</div>
+                    <div class="w-12 h-12 bg-blue-50 rounded-full flex items-center justify-center text-[#4f85ff]">
+                        <i class="ph-fill ph-wallet text-2xl"></i>
                     </div>
                 </div>
 
-                <h2 class="text-lg font-bold text-gray-900 mt-8 mb-4">Recharge Now</h2>
+                <h2 class="text-lg font-bold text-gray-900 mb-4 px-1">Recharge Wallet</h2>
                 
-                <div id="recharge-grid" class="grid grid-cols-2 gap-4">
+                <div id="recharge-grid" class="grid grid-cols-2 gap-4 mb-8">
                     <!-- Packs injected via JS -->
                 </div>
+                
+                <!-- Trust Markers -->
+                <div class="flex justify-between items-center px-4 py-6 border-t border-gray-200 text-gray-400 opacity-80">
+                    <div class="flex flex-col items-center gap-1">
+                       <i class="ph-fill ph-shield-check text-2xl"></i> <span class="text-[10px] font-bold">100% Safe</span>
+                    </div>
+                    <div class="h-8 w-px bg-gray-300"></div>
+                    <div class="flex flex-col items-center gap-1">
+                       <i class="ph-fill ph-lock-key text-2xl"></i> <span class="text-[10px] font-bold">Secure</span>
+                    </div>
+                    <div class="h-8 w-px bg-gray-300"></div>
+                    <div class="flex flex-col items-center gap-1">
+                       <i class="ph-fill ph-bank text-2xl"></i> <span class="text-[10px] font-bold">Trusted</span>
+                    </div>
+                </div>
             </div>
+        </div>
+
+        <!-- 9. SETTINGS VIEW -->
+        <div id="view-settings" class="view-section absolute inset-0 bg-[#f8f9fe] z-[60] flex flex-col hidden">
+             <div class="flex items-center justify-between px-5 py-4 bg-white shadow-sm shrink-0">
+                <div class="flex items-center gap-3">
+                    <button onclick="closeSubView()" class="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center hover:bg-gray-100">
+                        <i class="ph-bold ph-arrow-left text-gray-800 text-xl"></i>
+                    </button>
+                    <h1 class="text-xl font-bold text-gray-900">Settings</h1>
+                </div>
+            </div>
+
+            <div class="flex-1 p-5 space-y-4">
+                <div class="bg-white p-4 rounded-2xl flex items-center justify-between shadow-sm border border-gray-100 cursor-pointer">
+                   <div class="flex items-center gap-3">
+                      <div class="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center text-[#4f85ff]"><i class="ph-fill ph-file-text text-xl"></i></div>
+                      <span class="font-bold text-gray-800">Terms & Conditions</span>
+                   </div>
+                   <i class="ph ph-caret-right text-gray-400 text-xl"></i>
+                </div>
+                <div class="bg-white p-4 rounded-2xl flex items-center justify-between shadow-sm border border-gray-100 cursor-pointer">
+                   <div class="flex items-center gap-3">
+                      <div class="w-10 h-10 rounded-full bg-purple-50 flex items-center justify-center text-purple-500"><i class="ph-fill ph-shield text-xl"></i></div>
+                      <span class="font-bold text-gray-800">Privacy Policy</span>
+                   </div>
+                   <i class="ph ph-caret-right text-gray-400 text-xl"></i>
+                </div>
+                <div onclick="logout()" class="bg-white p-4 rounded-2xl flex items-center justify-between shadow-sm border border-gray-100 mt-8 cursor-pointer text-red-500">
+                   <div class="flex items-center gap-3">
+                       <div class="w-10 h-10 rounded-full bg-red-50 flex items-center justify-center"><i class="ph-bold ph-sign-out text-xl"></i></div>
+                       <span class="font-bold">Logout</span>
+                   </div>
+                   <i class="ph ph-caret-right text-red-200 text-xl"></i>
+                </div>
+            </div>
+            <div class="p-6 text-center text-gray-400">
+                <p class="text-xs font-bold uppercase tracking-widest">Version 2.4.0 Pro</p>
+            </div>
+        </div>
+
+        <!-- 10. PERMISSION MODAL -->
+        <div id="modal-permission" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-modal hidden flex items-center justify-center p-6">
+            <div class="bg-white rounded-3xl w-full max-w-sm p-6 text-center animate-slide-up">
+                <div class="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-4 text-[#4f85ff]">
+                    <i class="ph-fill ph-video-camera text-3xl"></i>
+                </div>
+                <h3 class="text-xl font-bold text-gray-900 mb-2">Allow Camera & Mic?</h3>
+                <p class="text-gray-500 text-sm mb-6 leading-relaxed">
+                    Mood Connecto needs access to your camera and microphone to start video calls with friends.
+                </p>
+                <div class="flex flex-col gap-3">
+                    <button onclick="grantPermission()" class="w-full py-3.5 rounded-full bg-[#4f85ff] text-white font-bold text-lg shadow-lg shadow-blue-200 active:scale-95 transition-transform">
+                        Allow Access
+                    </button>
+                    <button onclick="closeModal('modal-permission')" class="w-full py-3 rounded-full text-gray-500 font-bold text-sm">
+                        Deny
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 11. VIDEO CALL SCREEN -->
+        <div id="view-call" class="view-section absolute inset-0 bg-black z-[100] hidden">
+            <!-- Background Video (Simulated with Image for performance/demo) -->
+            <img id="call-partner-video" src="" class="absolute inset-0 w-full h-full object-cover opacity-60" />
+            
+            <!-- Gradient Overlays -->
+            <div class="absolute inset-0 bg-gradient-to-b from-black/60 via-transparent to-black/80"></div>
+
+            <!-- Connecting State -->
+            <div id="call-connecting" class="absolute inset-0 flex flex-col items-center justify-center z-10">
+                <div class="w-24 h-24 rounded-full border-4 border-[#4f85ff] p-1 mb-4 animate-pulse-slow">
+                    <img id="call-partner-avatar" src="" class="w-full h-full rounded-full object-cover" />
+                </div>
+                <h2 id="call-partner-name" class="text-2xl font-bold text-white mb-1">Name</h2>
+                <p class="text-white/80 animate-pulse">Connecting...</p>
+            </div>
+
+            <!-- Active Call Interface (Hidden initially) -->
+            <div id="call-active-ui" class="absolute inset-0 z-20 hidden flex-col justify-between p-6 pt-12">
+                <!-- Top Bar -->
+                <div class="flex justify-between items-start">
+                    <div class="glass-panel px-3 py-1 rounded-full flex items-center gap-2">
+                        <div class="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
+                        <span id="call-timer" class="text-white text-xs font-mono">00:00</span>
+                    </div>
+                    <div class="w-28 h-36 bg-black rounded-xl overflow-hidden border border-white/20 shadow-lg relative">
+                        <!-- User's Camera (Simulated) -->
+                        <img id="my-camera-feed" src="" class="w-full h-full object-cover transform scale-x-[-1]" />
+                    </div>
+                </div>
+
+                <!-- Bottom Controls -->
+                <div class="flex justify-center items-center gap-6 mb-8">
+                    <button onclick="toggleMute()" class="w-14 h-14 rounded-full glass-panel flex items-center justify-center text-white hover:bg-white/20 active:scale-95 transition-all">
+                        <i id="btn-mute-icon" class="ph-fill ph-microphone text-2xl"></i>
+                    </button>
+                    
+                    <button onclick="endCall()" class="w-20 h-20 rounded-full bg-red-500 flex items-center justify-center text-white shadow-xl shadow-red-500/40 active:scale-90 transition-transform">
+                        <i class="ph-fill ph-phone-disconnect text-3xl"></i>
+                    </button>
+                    
+                    <button class="w-14 h-14 rounded-full glass-panel flex items-center justify-center text-white hover:bg-white/20 active:scale-95 transition-all">
+                        <i class="ph-fill ph-camera-rotate text-2xl"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Toast Notification -->
+        <div id="toast" class="fixed bottom-24 left-1/2 transform -translate-x-1/2 bg-black/80 text-white px-6 py-3 rounded-full text-sm font-medium shadow-xl opacity-0 transition-opacity pointer-events-none z-toast whitespace-nowrap">
+            Message
         </div>
 
     </div>
 
     <!-- JAVASCRIPT LOGIC -->
     <script>
-        // --- DATA & STATE ---
+        // --- CONSTANTS ---
         const RAZORPAY_KEY_ID = "rzp_live_RZYwcdaxyYCvoD";
-        
+        const CALL_COST = 5;
+
+        // --- STATE MANAGEMENT (Local Storage) ---
         let state = {
-            balance: 0.00,
-            phone: "",
-            gender: "male",
-            name: "User",
-            photo: "", // base64
-            recents: [] // array of call objects
+            user: {
+                name: "User",
+                gender: "male",
+                phone: "",
+                avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Rocky", // Default
+                balance: 0.00
+            },
+            recents: [],
+            isLoggedIn: false
         };
 
-        // --- MOCK DATA ---
-        const femaleExperts = [
-          { id: 101, name: "Sofia", age: 22, loc: "Mumbai", lang: "Hindi • English", rate: 5.0, online: true, img: "https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?w=400&h=400&fit=crop&q=80" },
-          { id: 102, name: "Priya", age: 24, loc: "Bangalore", lang: "Eng • Kannada", rate: 5.0, online: true, img: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=400&h=400&fit=crop&q=80" },
-          { id: 103, name: "Ananya", age: 21, loc: "Delhi", lang: "Hindi • Punjabi", rate: 6.0, online: true, img: "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=400&h=400&fit=crop&q=80" },
-          { id: 104, name: "Riya", age: 23, loc: "Pune", lang: "Marathi • Eng", rate: 5.0, online: true, img: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&h=400&fit=crop&q=80" },
-          { id: 105, name: "Kriti", age: 25, loc: "Mumbai", lang: "Hindi", rate: 8.0, online: true, img: "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=400&h=400&fit=crop&q=80" },
-        ];
-
-        const maleExperts = [
-          { id: 201, name: "Arjun", age: 24, loc: "Mumbai", lang: "Hindi • English", rate: 5.0, online: true, img: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=400&h=400&fit=crop&q=80" },
-          { id: 202, name: "Rahul", age: 26, loc: "Delhi", lang: "Hindi", rate: 5.0, online: true, img: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=400&h=400&fit=crop&q=80" },
-          { id: 203, name: "Kabir", age: 23, loc: "Bangalore", lang: "Eng • Hindi", rate: 6.0, online: true, img: "https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?w=400&h=400&fit=crop&q=80" },
-        ];
-
-        const rechargePacks = [
-          { amount: 5, extra: null, tag: "Starter" },
-          { amount: 29, extra: "5%", tag: "Popular" },
-          { amount: 99, extra: "10%", tag: "Best Value" },
-          { amount: 199, extra: "15%", tag: null },
-          { amount: 499, extra: "20%", tag: null },
-          { amount: 999, extra: "25%", tag: null },
-        ];
-
-        // --- INIT & PERSISTENCE ---
+        // --- INIT ---
         window.onload = function() {
-            // Load state from local storage
-            const savedState = localStorage.getItem('moodConnectoState');
-            if(savedState) {
-                state = JSON.parse(savedState);
-                // If user is already logged in, maybe skip to main? 
-                // For this demo, we flow through splash -> main if data exists
-                if(state.phone) {
-                    // Update UI immediately
-                    updateProfileUI();
-                    renderRecents();
-                    document.querySelectorAll('.balance-display').forEach(el => el.textContent = state.balance.toFixed(2));
-                }
+            loadState();
+            
+            // Routing
+            if (state.isLoggedIn) {
+                // If logged in, skip onboarding
+                document.getElementById('view-splash').style.display = 'flex';
+                setTimeout(() => {
+                    switchView('view-main');
+                    updateUI();
+                }, 2000);
+            } else {
+                // Start flow
+                setTimeout(() => {
+                    switchView('view-gender');
+                }, 2500);
             }
-
-            setTimeout(() => {
-                if(state.phone) {
-                     renderExperts(); // Ensure lists are ready
-                     switchView('view-main');
-                     switchTab('home');
-                } else {
-                     switchView('view-gender');
-                }
-            }, 2000);
 
             renderPacks();
             setupOtpInputs();
+            setupBackButton();
         };
+
+        // --- STORAGE HELPERS ---
+        function loadState() {
+            const saved = localStorage.getItem('moodConnectoState');
+            if (saved) {
+                state = JSON.parse(saved);
+            }
+        }
 
         function saveState() {
             localStorage.setItem('moodConnectoState', JSON.stringify(state));
-            updateProfileUI();
+            updateUI();
+        }
+
+        function logout() {
+            localStorage.removeItem('moodConnectoState');
+            location.reload();
+        }
+
+        function updateUI() {
+            // Update Profile UI
+            document.getElementById('profile-name').textContent = state.user.name;
+            document.getElementById('header-avatar').src = state.user.avatar;
+            document.getElementById('profile-avatar-large').src = state.user.avatar;
+            document.getElementById('my-camera-feed').src = state.user.avatar; // Use avatar as cam feed simulation
+            
+            // Update Balance
+            document.querySelectorAll('.balance-display').forEach(el => {
+                el.textContent = state.user.balance.toFixed(2);
+            });
+
+            // Update Recents List
+            renderRecents();
+
+            // Render Experts based on Gender
+            renderExperts();
         }
 
         // --- NAVIGATION ---
@@ -605,7 +653,8 @@
                      el.style.display = 'none';
                 }
             });
-            closeSubView(); 
+            closeSubView();
+            closeModal('modal-permission');
 
             const target = document.getElementById(viewId);
             target.style.display = 'flex';
@@ -616,20 +665,25 @@
             const target = document.getElementById(viewId);
             target.classList.remove('hidden');
             target.style.display = 'flex';
-            setTimeout(() => target.classList.add('open'), 10);
         }
 
         function closeSubView() {
-            document.querySelectorAll('.sub-view').forEach(el => {
-                el.classList.remove('open');
-                setTimeout(() => {
-                     el.style.display = 'none';
-                     el.classList.add('hidden');
-                }, 300);
+            document.querySelectorAll('#view-wallet, #view-settings').forEach(el => {
+                el.classList.add('hidden');
+                el.style.display = 'none';
             });
         }
-
+        
         function openWallet() { openSubView('view-wallet'); }
+        function openSettings() { openSubView('view-settings'); }
+        
+        function openModal(id) {
+            document.getElementById(id).classList.remove('hidden');
+        }
+        
+        function closeModal(id) {
+            document.getElementById(id).classList.add('hidden');
+        }
 
         function switchTab(tabName) {
             ['home', 'recents', 'profile'].forEach(t => {
@@ -638,12 +692,15 @@
                 
                 const btn = document.getElementById('nav-btn-' + t);
                 const icon = document.getElementById('nav-icon-' + t);
-                
-                btn.classList.remove('text-[#4f85ff]', '-translate-y-2');
+                const label = btn.querySelector('span');
+
+                btn.classList.remove('text-[#4f85ff]', '-translate-y-1');
                 btn.classList.add('text-gray-400');
                 
-                icon.classList.remove('bg-blue-50', 'text-[#4f85ff]', 'shadow-sm');
+                icon.classList.remove('bg-blue-50/80', 'text-[#4f85ff]');
                 icon.classList.add('bg-transparent');
+                
+                label.classList.remove('text-[#4f85ff]');
             });
 
             const targetTab = document.getElementById('tab-' + tabName);
@@ -652,209 +709,285 @@
 
             const activeBtn = document.getElementById('nav-btn-' + tabName);
             const activeIcon = document.getElementById('nav-icon-' + tabName);
+            const activeLabel = activeBtn.querySelector('span');
 
             activeBtn.classList.remove('text-gray-400');
-            activeBtn.classList.add('text-[#4f85ff]', '-translate-y-2');
+            activeBtn.classList.add('text-[#4f85ff]', '-translate-y-1');
 
             activeIcon.classList.remove('bg-transparent');
-            activeIcon.classList.add('bg-blue-50', 'text-[#4f85ff]', 'shadow-sm');
+            activeIcon.classList.add('bg-blue-50/80', 'text-[#4f85ff]');
+            
+            activeLabel.classList.add('text-[#4f85ff]');
         }
 
         // --- ONBOARDING FLOW ---
-        function selectGender(g) {
-            state.gender = g;
-            saveState();
-            switchView('view-photo');
-        }
-
-        function handlePhotoUpload(input) {
-            if (input.files && input.files[0]) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    document.getElementById('preview-photo').src = e.target.result;
-                    state.photo = e.target.result;
-                    saveState();
-                }
-                reader.readAsDataURL(input.files[0]);
+        function selectGender(gender) {
+            state.user.gender = gender;
+            // Preload onboarding cover based on gender preference (opposite)
+            const img = document.getElementById('login-cover');
+            if(gender === 'male') {
+                // Show female
+                img.src = "https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?w=300&h=300&fit=crop&q=80"; 
+            } else {
+                // Show male
+                img.src = "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=300&h=300&fit=crop&q=80"; 
             }
-        }
-
-        function selectAvatar(seed) {
-            const url = `https://api.dicebear.com/7.x/avataaars/svg?seed=${seed}`;
-            document.getElementById('preview-photo').src = url;
-            state.photo = url;
-            saveState();
+            switchView('view-name');
         }
 
         function submitName() {
-            const val = document.getElementById('name-input').value;
-            if(val.length < 2) return alert("Please enter a valid name");
-            state.name = val;
-            saveState();
-            switchView('view-onboarding');
+            const input = document.getElementById('name-input');
+            if(input.value.trim().length < 2) {
+                showToast("Please enter a valid name");
+                return;
+            }
+            state.user.name = input.value;
+            switchView('view-avatar');
+        }
+
+        function handleFileUpload(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const base64 = e.target.result;
+                    state.user.avatar = base64;
+                    
+                    // Update preview
+                    const preview = document.getElementById('avatar-preview');
+                    preview.style.backgroundImage = `url('${base64}')`;
+                    document.getElementById('avatar-placeholder').style.display = 'none';
+                }
+                reader.readAsDataURL(file);
+            }
+        }
+
+        function finishOnboarding() {
+            switchView('view-login');
         }
 
         function goToOtp() {
-            const val = document.getElementById('mobile-input').value;
-            if(val.length < 10) return alert("Please enter valid number");
-            state.phone = val;
+            const input = document.getElementById('mobile-input');
+            const val = input.value;
+            if(val.length < 10) {
+                showToast("Enter valid 10-digit number");
+                return;
+            }
+            state.user.phone = val;
             document.getElementById('display-phone').textContent = "+91 " + val;
             
             const btn = document.getElementById('get-otp-btn');
-            const original = btn.innerHTML;
-            btn.innerHTML = `<div class="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>`;
+            const originalText = btn.innerText;
+            btn.innerText = "Sending...";
             
             setTimeout(() => {
-                btn.innerHTML = original;
+                btn.innerText = originalText;
                 switchView('view-otp');
-                document.querySelectorAll('.otp-input')[0].focus();
-            }, 1500);
-        }
-
-        function verifyOtp() {
-            // Simple Mock Verification
-            const inputs = document.querySelectorAll('.otp-input');
-            let code = "";
-            inputs.forEach(i => code += i.value);
-            if(code.length < 4) return;
-
-            const btn = document.getElementById('verify-otp-btn');
-            btn.innerHTML = "Verifying...";
-            
-            setTimeout(() => {
-                btn.innerHTML = "Verify & Login";
-                saveState(); // Persist final login state
-                renderExperts();
-                switchView('view-main');
-                switchTab('home');
-            }, 1500);
+                document.querySelector('.otp-input').focus();
+            }, 1000);
         }
 
         function setupOtpInputs() {
             const inputs = document.querySelectorAll('.otp-input');
             inputs.forEach((input, index) => {
                 input.addEventListener('input', (e) => {
-                    if(e.target.value.length === 1 && index < inputs.length - 1) inputs[index + 1].focus();
+                    if(e.target.value.length === 1 && index < inputs.length - 1) {
+                        inputs[index + 1].focus();
+                    }
                 });
                 input.addEventListener('keydown', (e) => {
-                    if(e.key === "Backspace" && e.target.value === "" && index > 0) inputs[index - 1].focus();
+                    if(e.key === "Backspace" && e.target.value === "" && index > 0) {
+                        inputs[index - 1].focus();
+                    }
                 });
             });
         }
 
-        // --- CALLING LOGIC (CORE) ---
-        let currentCallTimer = null;
-        let callSeconds = 0;
-        let currentExpert = null;
+        function verifyOtp() {
+            const inputs = document.querySelectorAll('.otp-input');
+            let otp = "";
+            inputs.forEach(i => otp += i.value);
+            
+            if(otp.length < 4) return;
 
-        function startRandomCall() {
-            // Pick random expert based on preference
-            const list = state.gender === 'male' ? femaleExperts : maleExperts;
-            const randomExpert = list[Math.floor(Math.random() * list.length)];
-            initiateCall(randomExpert);
+            const btn = document.getElementById('verify-otp-btn');
+            btn.innerText = "Verifying...";
+            
+            setTimeout(() => {
+                btn.innerText = "Verify & Proceed";
+                state.isLoggedIn = true;
+                saveState();
+                switchView('view-main');
+                switchTab('home'); 
+                showToast("Welcome to Mood Connecto!");
+            }, 1500);
         }
 
-        function initiateCall(expert) {
+        // --- CALL LOGIC ---
+        let currentCall = null;
+        let callTimer = null;
+        let callSeconds = 0;
+
+        function checkBalanceAndCall(expert = null) {
+            // Pick random expert if none provided
+            if(!expert) {
+                const list = state.user.gender === 'male' ? femaleExperts : maleExperts;
+                expert = list[Math.floor(Math.random() * list.length)];
+            }
+
             // 1. Balance Check
-            if(state.balance < 5) {
-                alert("Low Balance! Minimum ₹5 required.");
+            if (state.user.balance < CALL_COST) {
+                showToast("Low Balance! Please Recharge.");
                 openWallet();
                 return;
             }
 
-            // 2. Permission Mock
-            const perm = confirm(`Allow "Mood Connecto" to access your Camera and Microphone?`);
-            if(!perm) return;
+            // 2. Permission Check
+            currentCall = expert;
+            openModal('modal-permission');
+        }
 
-            // 3. Setup Call Screen
-            currentExpert = expert;
-            document.getElementById('view-calling').classList.remove('hidden');
-            document.getElementById('view-calling').style.display = 'flex'; // Ensure flex
-            
-            // Set Images
-            document.getElementById('call-bg-image').src = expert.img;
-            document.getElementById('call-center-img').src = expert.img;
-            document.getElementById('user-pip-img').src = state.photo || `https://api.dicebear.com/7.x/avataaars/svg?seed=${state.name}`;
-            
-            document.getElementById('call-name').innerText = expert.name;
-            document.getElementById('call-status').innerText = "CONNECTING...";
-            document.getElementById('call-status').classList.add('animate-pulse');
-            document.getElementById('connecting-ripple').style.display = 'flex';
-            document.getElementById('call-timer').classList.add('hidden');
+        function grantPermission() {
+            closeModal('modal-permission');
+            startCallSimulation(currentCall);
+        }
 
-            // 4. Simulate Connection Delay
+        function startCallSimulation(expert) {
+            const callView = document.getElementById('view-call');
+            const bgVideo = document.getElementById('call-partner-video');
+            const avatar = document.getElementById('call-partner-avatar');
+            const name = document.getElementById('call-partner-name');
+            const connectingUI = document.getElementById('call-connecting');
+            const activeUI = document.getElementById('call-active-ui');
+
+            // Setup UI
+            bgVideo.src = expert.img; // Simulating video with high-res image
+            avatar.src = expert.img;
+            name.textContent = expert.name;
+            
+            callView.style.display = 'block'; // Show Fullscreen Overlay
+            connectingUI.style.display = 'flex';
+            activeUI.style.display = 'none';
+
+            // Simulate Connection Delay (Ringing)
             setTimeout(() => {
-                document.getElementById('call-status').innerText = "CONNECTED";
-                document.getElementById('call-status').classList.remove('animate-pulse');
-                document.getElementById('connecting-ripple').style.display = 'none'; // Stop ripple
-                document.getElementById('call-timer').classList.remove('hidden');
+                // Connected
+                connectingUI.style.display = 'none';
+                activeUI.style.display = 'flex';
+                bgVideo.style.opacity = '1'; // Clear up video
                 
                 // Start Timer
                 callSeconds = 0;
-                currentCallTimer = setInterval(updateCallTimer, 1000);
+                updateTimer();
+                callTimer = setInterval(updateTimer, 1000);
+
             }, 2500);
         }
 
-        function updateCallTimer() {
+        function updateTimer() {
             callSeconds++;
             const mins = Math.floor(callSeconds / 60).toString().padStart(2, '0');
             const secs = (callSeconds % 60).toString().padStart(2, '0');
-            document.getElementById('call-timer').innerText = `${mins}:${secs}`;
-            
-            // Deduct balance logic could go here every minute
+            document.getElementById('call-timer').textContent = `${mins}:${secs}`;
         }
 
-        function endCall() {
-            clearInterval(currentCallTimer);
-            document.getElementById('view-calling').style.display = 'none';
-            document.getElementById('view-calling').classList.add('hidden');
-            
-            // Deduct cost (Mock: fixed 5rs)
-            if(callSeconds > 0) {
-                state.balance = Math.max(0, state.balance - 5);
-                
-                // Add to Recents
-                const callRecord = {
-                    name: currentExpert.name,
-                    img: currentExpert.img,
-                    time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
-                    duration: `${Math.floor(callSeconds / 60)}:${(callSeconds % 60).toString().padStart(2, '0')}`,
-                    cost: 5
-                };
-                state.recents.unshift(callRecord);
-                saveState();
-                renderRecents();
-                
-                // Show summary toast or alert
-                alert(`Call Ended. Duration: ${callRecord.duration}. Cost: ₹5`);
+        function toggleMute() {
+            const icon = document.getElementById('btn-mute-icon');
+            if(icon.classList.contains('ph-microphone')) {
+                icon.classList.replace('ph-microphone', 'ph-microphone-slash');
+                icon.parentElement.classList.add('bg-white', 'text-black');
+                icon.parentElement.classList.remove('glass-panel', 'text-white');
+            } else {
+                icon.classList.replace('ph-microphone-slash', 'ph-microphone');
+                icon.parentElement.classList.remove('bg-white', 'text-black');
+                icon.parentElement.classList.add('glass-panel', 'text-white');
             }
         }
 
+        function endCall() {
+            clearInterval(callTimer);
+            document.getElementById('view-call').style.display = 'none';
+            
+            // Deduct Balance (Simulated 1 min cost)
+            if(callSeconds > 0) {
+                state.user.balance -= CALL_COST;
+                if(state.user.balance < 0) state.user.balance = 0;
+                
+                // Add to Recents
+                const now = new Date();
+                state.recents.unshift({
+                    name: currentCall.name,
+                    img: currentCall.img,
+                    time: now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
+                    duration: `${Math.floor(callSeconds / 60)}:${(callSeconds % 60).toString().padStart(2, '0')}`,
+                    date: now.toLocaleDateString()
+                });
+                
+                saveState();
+                showToast("Call Ended");
+            }
+            
+            currentCall = null;
+        }
+
+        function setupBackButton() {
+            // Intercept browser back button to handle call screen
+            window.history.pushState(null, null, window.location.href);
+            window.onpopstate = function () {
+                window.history.pushState(null, null, window.location.href);
+                if (document.getElementById('view-call').style.display === 'block') {
+                    showToast("Press Red Button to End Call");
+                }
+            };
+        }
+
+        // --- DATA ---
+        const femaleExperts = [
+          { id: 101, name: "Sofia", age: 22, loc: "Moscow", rate: 5.0, online: true, img: "https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?w=800&q=80" },
+          { id: 102, name: "Elena", age: 24, loc: "Kiev", rate: 5.0, online: true, img: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=800&q=80" },
+          { id: 103, name: "Anna", age: 21, loc: "London", rate: 6.0, online: true, img: "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=800&q=80" },
+          { id: 104, name: "Mia", age: 23, loc: "Paris", rate: 5.0, online: true, img: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=800&q=80" },
+          { id: 105, name: "Chloe", age: 20, loc: "NYC", rate: 5.0, online: true, img: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=800&q=80" },
+        ];
+
+        const maleExperts = [
+          { id: 201, name: "Alex", age: 24, loc: "Mumbai", rate: 5.0, online: true, img: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=800&q=80" },
+          { id: 202, name: "Ryan", age: 26, loc: "London", rate: 5.0, online: true, img: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=800&q=80" },
+          { id: 203, name: "Aryan", age: 23, loc: "Delhi", rate: 6.0, online: true, img: "https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?w=800&q=80" },
+          { id: 204, name: "Leo", age: 25, loc: "Paris", rate: 5.0, online: true, img: "https://images.unsplash.com/photo-1504257432389-52343af06ae3?w=800&q=80" },
+        ];
+
+        const rechargePacks = [
+          { amount: 5, extra: null, tag: "Starter" },
+          { amount: 25, extra: null, tag: null },
+          { amount: 100, extra: "15%", tag: "Value" },
+          { amount: 500, extra: "35%", tag: "Pro" },
+        ];
+
         // --- RENDERERS ---
         function renderExperts() {
-            const list = state.gender === 'male' ? femaleExperts : maleExperts;
+            const list = state.user.gender === 'male' ? femaleExperts : maleExperts;
             const container = document.getElementById('experts-list');
+            
             container.innerHTML = list.map(ex => `
-                <div class="bg-white p-4 rounded-3xl shadow-[0_2px_10px_rgba(0,0,0,0.04)] flex items-center gap-4 border border-gray-100">
+                <div class="bg-white p-3 rounded-2xl shadow-sm border border-gray-100 flex items-center gap-3">
                     <div class="relative shrink-0">
-                        <div class="w-16 h-16 rounded-2xl overflow-hidden bg-gray-100">
+                        <div class="w-16 h-16 rounded-full overflow-hidden bg-gray-100 border-2 border-white shadow-sm">
                             <img src="${ex.img}" class="w-full h-full object-cover" />
                         </div>
-                        ${ex.online ? `<div class="absolute -top-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-white animate-pulse"></div>` : ''}
+                        <div class="absolute bottom-0 right-0 w-4 h-4 bg-green-500 border-2 border-white rounded-full"></div>
                     </div>
+
                     <div class="flex-1 min-w-0">
-                        <div class="flex justify-between items-start">
-                             <h3 class="font-bold text-gray-900 text-lg truncate">${ex.name}</h3>
-                             <div class="flex items-center gap-1 bg-yellow-50 px-2 py-0.5 rounded-full">
-                                <i class="ph-fill ph-star text-yellow-400 text-xs"></i>
-                                <span class="text-xs font-bold text-yellow-700">${ex.rate}</span>
-                             </div>
-                        </div>
-                        <p class="text-xs text-gray-500 truncate">${ex.lang}</p>
-                        <p class="font-bold text-gray-900 mt-1">₹${ex.rate}/min</p>
+                        <h3 class="font-bold text-gray-900 flex items-center gap-1">
+                            ${ex.name}, ${ex.age}
+                        </h3>
+                        <p class="text-xs text-gray-500 font-medium">${ex.loc}</p>
+                        <p class="text-sm font-bold text-[#4f85ff] mt-0.5">₹${ex.rate}/min</p>
                     </div>
-                    <button onclick='initiateCall(${JSON.stringify(ex)})' class="w-10 h-10 rounded-full bg-[#4f85ff] text-white flex items-center justify-center shadow-lg active:scale-95 transition-transform">
-                        <i class="ph-fill ph-phone-call"></i>
+
+                    <button onclick='checkBalanceAndCall(${JSON.stringify(ex)})' class="bg-[#4f85ff] text-white w-10 h-10 rounded-full shadow-lg shadow-blue-200 active:scale-90 transition-transform flex items-center justify-center">
+                        <i class="ph-fill ph-video-camera text-lg"></i>
                     </button>
                 </div>
             `).join('');
@@ -862,88 +995,85 @@
 
         function renderRecents() {
             const container = document.getElementById('recents-list');
-            const empty = document.getElementById('recents-empty');
+            const emptyState = document.getElementById('empty-recents');
             
-            if(state.recents.length === 0) {
-                empty.style.display = 'flex';
-                container.innerHTML = '';
-                container.appendChild(empty);
+            if (state.recents.length === 0) {
+                emptyState.style.display = 'flex';
                 return;
             }
-            
-            empty.style.display = 'none';
-            container.innerHTML = state.recents.map(rec => `
-                <div class="flex items-center gap-4 py-2 border-b border-gray-50">
-                    <div class="w-12 h-12 rounded-full overflow-hidden bg-gray-100">
-                        <img src="${rec.img}" class="w-full h-full object-cover">
+            emptyState.style.display = 'none';
+
+            container.innerHTML = state.recents.map(call => `
+                <div class="flex items-center gap-4 py-2 border-b border-gray-50 last:border-0">
+                    <div class="w-12 h-12 rounded-full overflow-hidden border border-gray-100 shrink-0">
+                        <img src="${call.img}" class="w-full h-full object-cover" />
                     </div>
                     <div class="flex-1">
-                        <h4 class="font-bold text-gray-900">${rec.name}</h4>
-                        <div class="flex items-center gap-2 text-xs text-gray-500">
-                            <i class="ph-fill ph-phone-outgoing text-green-500"></i>
-                            <span>${rec.time}</span> • <span>${rec.duration}</span>
+                        <h4 class="font-bold text-gray-900 text-sm">${call.name}</h4>
+                        <div class="flex items-center gap-1 text-xs text-gray-500">
+                            <i class="ph-fill ph-arrow-up-right text-green-500"></i>
+                            <span>Outgoing</span> • <span>${call.time}</span>
                         </div>
                     </div>
                     <div class="text-right">
-                         <span class="block font-bold text-red-500 text-sm">-₹${rec.cost}</span>
+                        <span class="text-xs font-mono text-gray-400 block">${call.duration}</span>
                     </div>
                 </div>
             `).join('');
         }
 
         function renderPacks() {
-            document.getElementById('recharge-grid').innerHTML = rechargePacks.map((pack, idx) => `
-                <button onclick="handlePayment(${pack.amount})" class="relative bg-white p-4 rounded-2xl border-2 text-left transition-all active:scale-95 ${idx === 1 ? 'border-[#4f85ff] bg-blue-50/30' : 'border-gray-100 hover:border-blue-200'}">
-                    ${pack.tag ? `<span class="absolute -top-2 left-4 text-[10px] text-white px-2 py-0.5 rounded-full bg-gradient-to-r from-[#4f85ff] to-blue-600 font-bold shadow-sm">${pack.tag}</span>` : ''}
-                    <div class="text-2xl font-bold text-gray-800">₹${pack.amount}</div>
-                    ${pack.extra ? `<div class="text-xs text-green-600 font-bold mt-1">+ ${pack.extra} extra</div>` : ''}
+            const container = document.getElementById('recharge-grid');
+            container.innerHTML = rechargePacks.map((pack, idx) => `
+                <button onclick="handlePayment(${pack.amount})" class="relative bg-white p-4 rounded-2xl border-2 text-left transition-all active:scale-95 ${idx === 0 || idx === 3 ? 'border-[#4f85ff] bg-blue-50/30' : 'border-gray-100 hover:border-blue-200'}">
+                    ${pack.tag ? `<span class="absolute -top-2 right-2 text-[10px] text-white px-2 py-0.5 rounded-full font-bold shadow-sm ${pack.tag === 'Starter' ? 'bg-green-500' : 'bg-blue-500'}">${pack.tag}</span>` : ''}
+                    <div class="text-2xl font-bold text-gray-900">₹${pack.amount}</div>
+                    ${pack.extra ? `<div class="text-xs text-green-600 font-bold mt-1">+ ${pack.extra} extra</div>` : `<div class="text-xs text-gray-400 font-medium mt-1">Regular Pack</div>`}
                 </button>
             `).join('');
-        }
-
-        function updateProfileUI() {
-            document.getElementById('profile-name-display').innerText = state.name;
-            document.getElementById('profile-phone-display').innerText = state.phone;
-            
-            if(state.photo) {
-                document.getElementById('profile-img-display').src = state.photo;
-            } else {
-                document.getElementById('profile-img-display').src = `https://api.dicebear.com/7.x/avataaars/svg?seed=${state.name}`;
-            }
-            
-            document.querySelectorAll('.balance-display').forEach(el => el.textContent = state.balance.toFixed(2));
         }
 
         // --- PAYMENT ---
         function handlePayment(amount) {
             const options = {
                 key: RAZORPAY_KEY_ID,
-                amount: amount * 100,
+                amount: amount * 100, // Paise
                 currency: "INR",
                 name: "Mood Connecto",
-                description: "Wallet Top-up",
-                image: "https://cdn-icons-png.flaticon.com/512/2504/2504929.png",
+                description: "Wallet Recharge",
                 handler: function (response) {
-                    state.balance += amount;
+                    state.user.balance += amount;
                     saveState();
-                    
-                    // Success UI
-                    alert(`Payment Successful! Added ₹${amount}`);
+                    showToast(`₹${amount} Added Successfully!`);
                     closeSubView();
-                    
-                    // If user tried to call but failed due to balance, maybe prompt them?
+                    // Auto Prompt Call if came from call
                 },
                 prefill: {
-                    name: state.name,
-                    contact: state.phone
+                    name: state.user.name,
+                    contact: state.user.phone || "9999999999"
                 },
-                theme: { color: "#4f85ff" }
+                theme: {
+                    color: "#4f85ff"
+                }
             };
-            const rzp = new Razorpay(options);
-            rzp.on('payment.failed', function (response){
-                alert("Payment Failed. Please try again.");
+            
+            const rzp1 = new Razorpay(options);
+            rzp1.on('payment.failed', function (response){
+                showToast("Payment Failed");
             });
-            rzp.open();
+            rzp1.open();
+        }
+
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            toast.textContent = msg;
+            toast.style.opacity = '1';
+            toast.style.transform = 'translate(-50%, 0)';
+            
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transform = 'translate(-50%, 20px)';
+            }, 3000);
         }
 
     </script>
