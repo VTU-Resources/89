@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Mood Connecto</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Pacifico&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Phosphor Icons (Replacement for Lucide) -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+
+    <!-- Razorpay SDK -->
+    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+
+    <style>
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: #f9fafb;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .font-cursive {
+            font-family: 'Pacifico', cursive;
+        }
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        .animate-fade-in {
+            animation: fadeIn 0.5s ease-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        /* Smooth transitions for views */
+        .view-section {
+            display: none;
+            height: 100%;
+            width: 100%;
+            flex-direction: column;
+        }
+        .view-section.active {
+            display: flex;
+            animation: fadeIn 0.3s ease-in-out;
+        }
+
+        /* Input styling for OTP */
+        .otp-input:focus {
+            border-color: #4f85ff;
+            background-color: #eff6ff;
+            transform: scale(1.05);
+            box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.1);
+        }
+    </style>
+</head>
+<body class="h-screen w-full flex justify-center bg-gray-100 overflow-hidden">
+
+    <!-- Mobile Container -->
+    <div id="app-container" class="relative w-full max-w-md h-full bg-white shadow-2xl flex flex-col overflow-hidden">
+        
+        <!-- ================= VIEWS ================= -->
+
+        <!-- 1. SPLASH SCREEN -->
+        <div id="view-splash" class="view-section active items-center justify-center bg-white">
+            <div class="flex flex-col items-center gap-4">
+                <div class="relative w-24 h-24">
+                   <div class="absolute inset-0 border-4 border-[#4f85ff] rounded-full opacity-20 animate-ping"></div>
+                   <div class="w-24 h-24 bg-gradient-to-tr from-[#4f85ff] to-[#ff4f85] rounded-full flex items-center justify-center text-white text-4xl font-bold shadow-xl">
+                     <div class="relative">
+                       <div class="absolute w-3 h-3 bg-white rounded-full -top-1 -right-1"></div>
+                       ∞
+                     </div>
+                   </div>
+                </div>
+                <div class="text-center mt-4 animate-pulse">
+                    <h1 class="text-3xl font-cursive text-[#ff4f85]">Mood</h1>
+                    <h1 class="text-4xl font-cursive text-[#4f85ff] -mt-2">Connecto</h1>
+                </div>
+            </div>
+        </div>
+
+        <!-- 2. ONBOARDING / LOGIN -->
+        <div id="view-onboarding" class="view-section bg-white">
+            <div class="flex-1 flex flex-col items-center justify-center p-8 text-center">
+                <h1 class="text-3xl font-cursive text-[#4f85ff] mb-1">Mood</h1>
+                <h1 class="text-4xl font-cursive text-[#ff4f85] mb-8">Connecto</h1>
+                
+                <div class="w-64 h-64 bg-blue-50 rounded-full flex items-center justify-center mb-8 relative overflow-hidden shadow-inner">
+                   <img src="https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?w=300&h=300&fit=crop&q=80" alt="Cover" class="w-full h-full object-cover opacity-90" />
+                </div>
+                
+                <h2 class="text-xl font-bold text-gray-900 mb-2">First Call @ just ₹5/min</h2>
+                <div class="flex gap-2 mt-4 justify-center">
+                  <div class="w-2 h-2 bg-[#4f85ff] rounded-full"></div>
+                  <div class="w-2 h-2 bg-gray-300 rounded-full"></div>
+                </div>
+            </div>
+            
+            <div class="p-6 bg-white pb-10">
+                <div class="border border-red-200 rounded-xl p-1 mb-6 flex items-center bg-red-50/50">
+                  <div class="flex items-center gap-2 px-3 border-r border-gray-300">
+                    <img src="https://flagcdn.com/w20/in.png" alt="IN" class="w-6 rounded-sm"/>
+                    <span class="font-semibold text-gray-700">+91</span>
+                  </div>
+                  <input id="mobile-input" type="tel" placeholder="Your Mobile Number" class="flex-1 p-3 bg-transparent outline-none font-medium text-lg placeholder:text-gray-400" maxlength="10">
+                </div>
+
+                <button id="get-otp-btn" onclick="goToOtp()" class="w-full py-3.5 rounded-full font-semibold transition-transform active:scale-95 flex items-center justify-center gap-2 bg-[#4f85ff] text-white shadow-lg shadow-blue-200 disabled:opacity-50 disabled:cursor-not-allowed">
+                    Get OTP
+                </button>
+                
+                <p class="text-xs text-center text-gray-500 mt-4 leading-relaxed">
+                  By tapping, you agree to our <span class="underline text-gray-700">Terms of Use</span> and <span class="underline text-gray-700">Privacy Policy</span>.
+                </p>
+            </div>
+        </div>
+
+        <!-- 3. OTP SCREEN -->
+        <div id="view-otp" class="view-section bg-white p-6 pt-12">
+            <button onclick="switchView('view-onboarding')" class="mb-6 w-fit p-2 -ml-2 rounded-full hover:bg-gray-100 transition-colors">
+                <i class="ph ph-arrow-left text-gray-900 text-2xl"></i>
+            </button>
+            
+            <div class="mb-10">
+                <h1 class="text-3xl font-bold text-gray-900 mb-2">Verify OTP</h1>
+                <p class="text-gray-500 text-base">
+                  Enter code sent to <span id="display-phone" class="font-bold text-gray-900">+91 </span>
+                </p>
+            </div>
+
+            <div class="mb-10 w-full">
+               <div class="flex justify-between gap-3 px-2" id="otp-container">
+                    <input type="tel" maxlength="1" class="otp-input w-16 h-16 rounded-2xl text-center text-3xl font-bold outline-none transition-all duration-200 border-2 border-gray-200 bg-gray-50 text-gray-900">
+                    <input type="tel" maxlength="1" class="otp-input w-16 h-16 rounded-2xl text-center text-3xl font-bold outline-none transition-all duration-200 border-2 border-gray-200 bg-gray-50 text-gray-900">
+                    <input type="tel" maxlength="1" class="otp-input w-16 h-16 rounded-2xl text-center text-3xl font-bold outline-none transition-all duration-200 border-2 border-gray-200 bg-gray-50 text-gray-900">
+                    <input type="tel" maxlength="1" class="otp-input w-16 h-16 rounded-2xl text-center text-3xl font-bold outline-none transition-all duration-200 border-2 border-gray-200 bg-gray-50 text-gray-900">
+               </div>
+            </div>
+
+            <button id="verify-otp-btn" onclick="verifyOtp()" class="w-full py-3.5 rounded-full font-semibold transition-transform active:scale-95 flex items-center justify-center gap-2 bg-[#4f85ff] text-white shadow-lg shadow-blue-200 disabled:opacity-50">
+                Proceed
+            </button>
+        </div>
+
+        <!-- 4. MAIN APP (Home/Recents/Profile) -->
+        <div id="view-main" class="view-section bg-gray-50">
+            <!-- Dynamic Content Area -->
+            <div id="main-content" class="flex-1 overflow-y-auto pb-0 relative">
+                
+                <!-- HOME TAB CONTENT -->
+                <div id="tab-home" class="flex flex-col min-h-full bg-gradient-to-b from-pink-50 to-blue-50/30 pb-24">
+                    <!-- Header -->
+                    <div class="px-4 py-3 flex justify-between items-center bg-transparent shrink-0">
+                        <div>
+                            <span class="text-xl font-cursive text-[#ff4f85]">Mood</span>
+                            <span class="text-xl font-cursive text-gray-900 ml-1">Connecto</span>
+                        </div>
+                        <div class="flex gap-3 items-center">
+                            <button onclick="openWallet()" class="bg-[#4f85ff] text-white pl-3 pr-1 py-1 rounded-full text-sm font-bold flex items-center gap-2 shadow-lg shadow-blue-200 active:scale-95 transition-transform">
+                                ₹<span class="balance-display">0.00</span> 
+                                <div class="bg-white text-[#4f85ff] rounded-full w-6 h-6 flex items-center justify-center text-lg shadow-sm">+</div>
+                            </button>
+                            <div onclick="switchTab('profile')" class="w-10 h-10 rounded-full bg-orange-100 overflow-hidden border-2 border-white shadow-sm cursor-pointer">
+                                <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Rocky&clothing=hoodie" />
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Banner -->
+                    <div class="px-4 mt-2 mb-4 shrink-0">
+                        <div class="bg-gradient-to-r from-purple-200 via-pink-200 to-red-200 rounded-2xl p-4 flex justify-between items-center relative overflow-hidden shadow-sm">
+                            <div class="absolute -right-4 -bottom-4 w-24 h-24 bg-white/20 rounded-full blur-xl"></div>
+                            <div class="z-10">
+                                <p class="text-[#4f85ff] text-xs font-bold mb-1">Stay Connected &</p>
+                                <h3 class="text-[#4f85ff] text-lg font-bold leading-none">Make Friends</h3>
+                                <p class="text-pink-600 text-xs font-semibold mt-1">@ ₹5/min only!</p>
+                            </div>
+                            <button class="z-10 bg-gradient-to-r from-red-500 to-pink-500 text-white px-4 py-2 rounded-full text-sm font-bold shadow-md flex items-center gap-1 active:scale-95 transition-transform">
+                                Random Call <i class="ph-fill ph-lightning"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Filters -->
+                    <div class="px-4 pb-2 shrink-0">
+                        <h2 class="text-lg font-bold text-gray-900 mb-3">Featured Experts</h2>
+                        <div class="flex gap-3 overflow-x-auto no-scrollbar pb-2">
+                            <button class="px-5 py-1.5 rounded-full text-sm font-medium whitespace-nowrap bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-md">All</button>
+                            <button class="px-5 py-1.5 rounded-full text-sm font-medium whitespace-nowrap bg-white border border-gray-200 text-gray-700">Star</button>
+                            <button class="px-5 py-1.5 rounded-full text-sm font-medium whitespace-nowrap bg-white border border-gray-200 text-gray-700">New</button>
+                            <button class="px-5 py-1.5 rounded-full text-sm font-medium whitespace-nowrap bg-white border border-gray-200 text-gray-700">Relationship</button>
+                        </div>
+                    </div>
+
+                    <!-- Experts List -->
+                    <div id="experts-list" class="px-4 space-y-3">
+                        <!-- JS injected here -->
+                    </div>
+                </div>
+
+                <!-- RECENTS TAB CONTENT -->
+                <div id="tab-recents" class="hidden flex-col h-full bg-pink-50/30">
+                    <div class="flex items-center justify-between px-4 py-3 bg-transparent shrink-0">
+                        <h1 class="text-xl font-bold text-gray-900">Recents</h1>
+                    </div>
+                    <div class="flex-1 flex flex-col items-center justify-center text-gray-400 pb-20">
+                        <i class="ph ph-clock text-5xl mb-4 opacity-20"></i>
+                        <p>No recent calls</p>
+                    </div>
+                </div>
+
+                <!-- PROFILE TAB CONTENT -->
+                <div id="tab-profile" class="hidden flex-col h-full bg-pink-50/50">
+                     <div class="flex items-center justify-between px-4 py-3 bg-transparent shrink-0">
+                        <h1 class="text-xl font-bold text-gray-900">My Profile</h1>
+                        <div onclick="openWallet()" class="bg-[#4f85ff] text-white px-3 py-1 rounded-full text-sm font-bold flex items-center gap-1 cursor-pointer">
+                            ₹<span class="balance-display">0.00</span> <div class="bg-white text-[#4f85ff] rounded-full w-4 h-4 flex items-center justify-center text-xs">+</div>
+                        </div>
+                    </div>
+
+                    <div class="flex-1 px-4 py-4 pb-24">
+                        <div class="bg-white rounded-2xl p-6 text-center shadow-sm mb-4">
+                            <div class="relative w-24 h-24 mx-auto mb-3">
+                                <div class="absolute inset-0 bg-blue-100 rounded-full animate-pulse"></div>
+                                <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Rocky&clothing=hoodie&hair=shortHair" class="w-24 h-24 rounded-full relative z-10" />
+                            </div>
+                            <h2 class="text-xl font-bold text-gray-900">Rocky</h2>
+                            <p class="text-gray-500 text-xs mt-1">Member since 2025</p>
+                            <div class="flex gap-4 mt-6">
+                                <button class="flex-1 py-2.5 rounded-full border border-gray-800 text-gray-800 font-medium text-sm">Edit</button>
+                                <button onclick="openWallet()" class="flex-1 py-2.5 rounded-full bg-[#4f85ff] text-white font-medium text-sm">Add Money</button>
+                            </div>
+                        </div>
+
+                        <div class="space-y-3">
+                            <div onclick="openWallet()" class="bg-white p-4 rounded-xl flex items-center justify-between shadow-sm active:scale-[0.99] transition-transform cursor-pointer">
+                                <div class="flex items-center gap-4">
+                                    <i class="ph ph-arrows-left-right text-[#4f85ff] text-xl"></i>
+                                    <span class="font-semibold text-gray-800">Transactions</span>
+                                </div>
+                                <i class="ph ph-caret-right text-gray-400 text-xl"></i>
+                            </div>
+                            <div onclick="openSettings()" class="bg-white p-4 rounded-xl flex items-center justify-between shadow-sm active:scale-[0.99] transition-transform cursor-pointer">
+                                <div class="flex items-center gap-4">
+                                    <i class="ph ph-gear text-[#4f85ff] text-xl"></i>
+                                    <span class="font-semibold text-gray-800">Settings</span>
+                                </div>
+                                <i class="ph ph-caret-right text-gray-400 text-xl"></i>
+                            </div>
+                            <div class="bg-white p-4 rounded-xl flex items-center justify-between shadow-sm active:scale-[0.99] transition-transform cursor-pointer">
+                                <div class="flex items-center gap-4">
+                                    <i class="ph ph-star text-yellow-500 text-xl"></i>
+                                    <span class="font-semibold text-gray-800">Rate us</span>
+                                </div>
+                                <i class="ph ph-caret-right text-gray-400 text-xl"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- FIXED BOTTOM NAV -->
+            <div id="bottom-nav" class="shrink-0 bg-white px-6 py-3 flex justify-between items-center shadow-[0_-5px_15px_rgba(0,0,0,0.05)] rounded-t-2xl z-50 border-t border-gray-50">
+                <button onclick="switchTab('home')" id="nav-btn-home" class="flex flex-col items-center gap-1 transition-all duration-200 w-16 text-[#4f85ff] -translate-y-1">
+                    <div id="nav-icon-home" class="p-2 rounded-full transition-all bg-blue-50 shadow-sm">
+                        <i class="ph ph-house text-2xl font-bold"></i>
+                    </div>
+                    <span class="text-[10px] font-bold">Home</span>
+                </button>
+
+                <button onclick="switchTab('recents')" id="nav-btn-recents" class="flex flex-col items-center gap-1 transition-all duration-200 w-16 text-gray-400">
+                    <div id="nav-icon-recents" class="p-2 rounded-full transition-all bg-transparent">
+                        <i class="ph ph-clock text-2xl"></i>
+                    </div>
+                    <span class="text-[10px] font-bold">Recents</span>
+                </button>
+
+                <button onclick="switchTab('profile')" id="nav-btn-profile" class="flex flex-col items-center gap-1 transition-all duration-200 w-16 text-gray-400">
+                    <div id="nav-icon-profile" class="p-2 rounded-full transition-all bg-transparent">
+                        <i class="ph ph-user text-2xl"></i>
+                    </div>
+                    <span class="text-[10px] font-bold">Profile</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- 5. WALLET VIEW (Sub View) -->
+        <div id="view-wallet" class="view-section absolute inset-0 bg-pink-50 z-[60] flex flex-col hidden">
+            <div class="flex items-center justify-between px-4 py-3 bg-white/50 shrink-0">
+                <div class="flex items-center gap-3">
+                    <button onclick="closeSubView()" class="p-1 -ml-2 rounded-full hover:bg-black/5">
+                        <i class="ph ph-arrow-left text-gray-800 text-2xl"></i>
+                    </button>
+                    <h1 class="text-xl font-bold text-gray-900">Wallet</h1>
+                </div>
+                <button class="px-4 py-1.5 rounded-full border border-[#4f85ff] text-[#4f85ff] text-sm font-medium bg-white">
+                    Transactions
+                </button>
+            </div>
+            
+            <div class="flex-1 overflow-y-auto px-4 pb-4">
+                <div class="bg-white rounded-2xl p-5 mb-6 shadow-sm flex justify-between items-center mt-4">
+                    <span class="text-gray-600 font-medium">My Balance</span>
+                    <span class="text-2xl font-bold text-[#4f85ff]">₹<span class="balance-display">0.00</span></span>
+                </div>
+
+                <h2 class="text-lg font-bold text-gray-900 mb-4">Add Balance</h2>
+                
+                <div id="recharge-grid" class="grid grid-cols-2 gap-4">
+                    <!-- Packs injected via JS -->
+                </div>
+
+                <div class="flex justify-between items-center mt-8 px-2 text-gray-400">
+                    <div class="flex flex-col items-center gap-1">
+                       <i class="ph ph-user text-xl"></i> <span class="text-[10px]">Verified</span>
+                    </div>
+                    <div class="h-8 w-px bg-gray-200"></div>
+                    <div class="flex flex-col items-center gap-1">
+                       <i class="ph ph-shield-check text-xl"></i> <span class="text-[10px]">Safe</span>
+                    </div>
+                    <div class="h-8 w-px bg-gray-200"></div>
+                    <div class="flex flex-col items-center gap-1">
+                       <i class="ph ph-wallet text-xl"></i> <span class="text-[10px]">Secure</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 6. SETTINGS VIEW (Sub View) -->
+        <div id="view-settings" class="view-section absolute inset-0 bg-pink-50 z-[60] flex flex-col hidden">
+             <div class="flex items-center justify-between px-4 py-3 bg-white/50 shrink-0">
+                <div class="flex items-center gap-3">
+                    <button onclick="closeSubView()" class="p-1 -ml-2 rounded-full hover:bg-black/5">
+                        <i class="ph ph-arrow-left text-gray-800 text-2xl"></i>
+                    </button>
+                    <h1 class="text-xl font-bold text-gray-900">Settings</h1>
+                </div>
+            </div>
+
+            <div class="flex-1 p-4 space-y-3">
+                <div class="bg-white p-4 rounded-xl flex items-center justify-between shadow-sm cursor-pointer active:bg-gray-50">
+                   <div class="flex items-center gap-3">
+                      <i class="ph ph-file-text text-[#4f85ff] text-xl"></i>
+                      <span class="font-semibold text-gray-800">Terms & Conditions</span>
+                   </div>
+                   <i class="ph ph-caret-right text-gray-400 text-xl"></i>
+                </div>
+                <div class="bg-white p-4 rounded-xl flex items-center justify-between shadow-sm cursor-pointer active:bg-gray-50">
+                   <div class="flex items-center gap-3">
+                      <i class="ph ph-shield text-[#4f85ff] text-xl"></i>
+                      <span class="font-semibold text-gray-800">Privacy Policy</span>
+                   </div>
+                   <i class="ph ph-caret-right text-gray-400 text-xl"></i>
+                </div>
+                <div onclick="switchView('view-onboarding')" class="bg-white p-4 rounded-xl flex items-center justify-between shadow-sm mt-6 cursor-pointer hover:bg-red-50">
+                   <div class="flex items-center gap-3"><i class="ph ph-sign-out text-[#4f85ff] text-xl"></i><span class="font-semibold text-gray-800">Logout</span></div>
+                   <i class="ph ph-caret-right text-gray-400 text-xl"></i>
+                </div>
+            </div>
+            <div class="p-6 text-center"><p class="text-xs text-gray-500">Version: 2.0.0 (Mood Edition)</p></div>
+        </div>
+
+    </div>
+
+    <!-- JAVASCRIPT LOGIC -->
+    <script>
+        // --- DATA ---
+        const RAZORPAY_KEY_ID = "rzp_live_RZYwcdaxyYCvoD";
+        let userBalance = 0.00;
+        let userPhone = "";
+
+        const experts = [
+          { id: 1, name: "Mammu", age: 25, loc: "Delhi, DL", lang: "Kannada • Telugu", rate: 5.0, rating: 4.8, online: true, img: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&h=150&fit=crop&q=80" },
+          { id: 2, name: "Kutty", age: 24, loc: "Mysuru, KA", lang: "Kannada • Tamil", rate: 5.0, rating: 4.9, online: true, img: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&h=150&fit=crop&q=80" },
+          { id: 3, name: "Chai", age: 31, loc: "Bengaluru, KA", lang: "Kannada", rate: 6.0, rating: 4.6, online: true, img: "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=150&h=150&fit=crop&q=80" },
+          { id: 4, name: "Bujji", age: 22, loc: "Mumbai, MH", lang: "Hindi • Marathi", rate: 5.0, rating: 4.7, online: true, img: "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=150&h=150&fit=crop&q=80" },
+          { id: 5, name: "Lakshmi", age: 23, loc: "Bengaluru, KA", lang: "Kannada • Telugu", rate: 7.0, rating: 4.9, online: true, img: "https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?w=150&h=150&fit=crop&q=80" },
+          { id: 6, name: "Priya", age: 26, loc: "Chennai, TN", lang: "Tamil • English", rate: 5.0, rating: 4.5, online: true, img: "https://images.unsplash.com/photo-1488426862026-3ee34a7d66df?w=150&h=150&fit=crop&q=80" },
+          { id: 7, name: "Angel", age: 21, loc: "Pune, MH", lang: "Hindi • English", rate: 8.0, rating: 4.3, online: true, img: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&h=150&fit=crop&q=80" },
+        ];
+
+        const rechargePacks = [
+          { amount: 5, extra: null, tag: "Starter" },
+          { amount: 25, extra: null, tag: null },
+          { amount: 50, extra: "6%", tag: null },
+          { amount: 100, extra: "15%", tag: "Value" },
+          { amount: 200, extra: "25%", tag: null },
+          { amount: 500, extra: "35%", tag: "Popular" },
+          { amount: 1000, extra: "35%", tag: null },
+          { amount: 5000, extra: "35%", tag: null },
+        ];
+
+        // --- INIT ---
+        window.onload = function() {
+            setTimeout(() => {
+                switchView('view-onboarding');
+            }, 2500);
+
+            renderExperts();
+            renderPacks();
+            setupOtpInputs();
+        };
+
+        // --- NAVIGATION ---
+        function switchView(viewId) {
+            // Hide all main views
+            document.querySelectorAll('.view-section').forEach(el => {
+                if(!el.classList.contains('absolute')) { // Don't hide subviews here, handled separately
+                     el.classList.remove('active');
+                     el.style.display = 'none';
+                }
+            });
+            closeSubView(); // Ensure subviews are closed when switching main flow
+
+            const target = document.getElementById(viewId);
+            target.style.display = 'flex';
+            setTimeout(() => target.classList.add('active'), 10);
+        }
+
+        function openSubView(viewId) {
+            const target = document.getElementById(viewId);
+            target.classList.remove('hidden');
+            target.style.display = 'flex';
+        }
+
+        function closeSubView() {
+            document.querySelectorAll('#view-wallet, #view-settings').forEach(el => {
+                el.classList.add('hidden');
+                el.style.display = 'none';
+            });
+        }
+
+        function openWallet() {
+            openSubView('view-wallet');
+        }
+
+        function openSettings() {
+            openSubView('view-settings');
+        }
+
+        function switchTab(tabName) {
+            // Hide all contents
+            ['home', 'recents', 'profile'].forEach(t => {
+                document.getElementById('tab-' + t).classList.add('hidden');
+                document.getElementById('tab-' + t).classList.remove('flex');
+                
+                // Reset Nav Style
+                const btn = document.getElementById('nav-btn-' + t);
+                const icon = document.getElementById('nav-icon-' + t);
+                
+                btn.classList.remove('text-[#4f85ff]', '-translate-y-1');
+                btn.classList.add('text-gray-400');
+                
+                icon.classList.remove('bg-blue-50', 'shadow-sm');
+                icon.classList.add('bg-transparent');
+            });
+
+            // Show target
+            const targetTab = document.getElementById('tab-' + tabName);
+            targetTab.classList.remove('hidden');
+            targetTab.classList.add('flex');
+
+            // Active Nav Style
+            const activeBtn = document.getElementById('nav-btn-' + tabName);
+            const activeIcon = document.getElementById('nav-icon-' + tabName);
+
+            activeBtn.classList.remove('text-gray-400');
+            activeBtn.classList.add('text-[#4f85ff]', '-translate-y-1');
+
+            activeIcon.classList.remove('bg-transparent');
+            activeIcon.classList.add('bg-blue-50', 'shadow-sm');
+        }
+
+        // --- LOGIC: LOGIN & OTP ---
+        function goToOtp() {
+            const input = document.getElementById('mobile-input');
+            const val = input.value;
+            if(val.length < 10) {
+                alert("Please enter a valid 10-digit number");
+                return;
+            }
+            userPhone = val;
+            document.getElementById('display-phone').textContent = "+91 " + val;
+            
+            // Show loading state on button
+            const btn = document.getElementById('get-otp-btn');
+            const originalText = btn.innerText;
+            btn.innerText = "Sending...";
+            
+            setTimeout(() => {
+                btn.innerText = originalText;
+                switchView('view-otp');
+                // Focus first otp input
+                document.querySelector('.otp-input').focus();
+            }, 1000);
+        }
+
+        function setupOtpInputs() {
+            const inputs = document.querySelectorAll('.otp-input');
+            inputs.forEach((input, index) => {
+                input.addEventListener('input', (e) => {
+                    if(e.target.value.length === 1 && index < inputs.length - 1) {
+                        inputs[index + 1].focus();
+                    }
+                });
+                input.addEventListener('keydown', (e) => {
+                    if(e.key === "Backspace" && e.target.value === "" && index > 0) {
+                        inputs[index - 1].focus();
+                    }
+                });
+            });
+        }
+
+        function verifyOtp() {
+            const inputs = document.querySelectorAll('.otp-input');
+            let otp = "";
+            inputs.forEach(i => otp += i.value);
+            
+            if(otp.length < 4) return;
+
+            const btn = document.getElementById('verify-otp-btn');
+            btn.innerText = "Verifying...";
+            
+            setTimeout(() => {
+                btn.innerText = "Proceed";
+                switchView('view-main');
+                switchTab('home'); // Default tab
+            }, 1500);
+        }
+
+        // --- RENDERERS ---
+        function renderExperts() {
+            const container = document.getElementById('experts-list');
+            container.innerHTML = experts.map(ex => `
+                <div class="bg-white p-3 rounded-2xl shadow-sm flex items-center gap-3">
+                    <div class="relative shrink-0">
+                        <div class="w-16 h-16 rounded-full overflow-hidden bg-gray-100 border border-gray-100">
+                            <img src="${ex.img}" class="w-full h-full object-cover" />
+                        </div>
+                        ${ex.online ? `
+                        <div class="absolute bottom-0 right-0 bg-white px-1.5 rounded-full border border-gray-100 shadow-sm">
+                            <div class="text-[10px] font-bold text-green-500 flex items-center gap-0.5">
+                                <div class="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></div> Online
+                            </div>
+                        </div>` : ''}
+                        <div class="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-white px-1.5 py-0.5 rounded-md shadow-sm border border-gray-100 flex items-center gap-1 min-w-max">
+                            <i class="ph-fill ph-star text-yellow-400 text-[10px]"></i>
+                            <span class="text-[10px] font-bold text-gray-700">${ex.rating}</span>
+                        </div>
+                    </div>
+
+                    <div class="flex-1 min-w-0">
+                        <div class="flex justify-between items-start">
+                            <div class="truncate">
+                                <h3 class="font-bold text-gray-900 flex items-center gap-1 truncate">
+                                    ${ex.name} <div class="w-2 h-2 bg-green-500 rounded-full shrink-0"></div>
+                                </h3>
+                                <p class="text-xs text-gray-500 truncate">${ex.age} Y • ${ex.loc}</p>
+                            </div>
+                        </div>
+                        <p class="text-[10px] text-gray-500 mt-1 truncate">${ex.lang}</p>
+                        <p class="font-bold text-gray-900 mt-0.5">₹${ex.rate}<span class="text-xs font-normal text-gray-500">/min</span></p>
+                    </div>
+
+                    <button onclick="openWallet()" class="bg-[#4f85ff] text-white px-4 py-2 rounded-full font-semibold text-sm shadow-blue-100 shadow-lg active:scale-95 transition-transform flex items-center gap-1 shrink-0">
+                        <i class="ph-fill ph-phone"></i> Call
+                    </button>
+                </div>
+            `).join('');
+        }
+
+        function renderPacks() {
+            const container = document.getElementById('recharge-grid');
+            container.innerHTML = rechargePacks.map((pack, idx) => `
+                <button onclick="handlePayment(${pack.amount})" class="relative bg-white p-4 rounded-xl border-2 text-left transition-all active:scale-95 ${idx === 0 || idx === 3 ? 'border-[#4f85ff] shadow-md bg-blue-50/20' : 'border-transparent shadow-sm hover:border-blue-200'}">
+                    ${pack.tag ? `<span class="absolute -top-2 right-2 text-[10px] text-white px-2 py-0.5 rounded-full ${pack.tag === 'Starter' ? 'bg-green-500' : 'bg-blue-500'}">${pack.tag}</span>` : ''}
+                    <div class="text-xl font-bold text-[#4f85ff]">₹${pack.amount}</div>
+                    ${pack.extra ? `<div class="text-xs text-green-600 font-bold mt-1">+ ${pack.extra} extra</div>` : ''}
+                </button>
+            `).join('');
+        }
+
+        // --- PAYMENT ---
+        function handlePayment(amount) {
+            const options = {
+                key: RAZORPAY_KEY_ID,
+                amount: amount * 100, // Paise
+                currency: "INR",
+                name: "Mood Connecto",
+                description: "Wallet Recharge",
+                image: "https://via.placeholder.com/150/4f85ff/FFFFFF?text=M",
+                handler: function (response) {
+                    // Update Balance
+                    userBalance += amount;
+                    document.querySelectorAll('.balance-display').forEach(el => el.textContent = userBalance.toFixed(2));
+                    alert("Payment Successful! ID: " + response.razorpay_payment_id);
+                },
+                prefill: {
+                    name: "User",
+                    contact: userPhone || "9999999999"
+                },
+                theme: {
+                    color: "#4f85ff"
+                }
+            };
+            
+            const rzp1 = new Razorpay(options);
+            rzp1.on('payment.failed', function (response){
+                alert("Payment Failed");
+            });
+            rzp1.open();
+        }
+
+    </script>
+</body>
+</html>
